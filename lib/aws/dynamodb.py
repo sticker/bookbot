@@ -113,12 +113,13 @@ class Dynamodb(object):
         convert_items = []
         ExclusiveStartKey = None
         while True:
-            if ExclusiveStartKey is None:
-                method_str = f"query(KeyConditionExpression=param, ScanIndexForward={scan_index_forward}{indexname_param})"
-                response = self.request_within_capacity(table, method_str, kce)
-            else:
-                method_str = f"query(KeyConditionExpression=param, ScanIndexForward={scan_index_forward}{indexname_param}, ExclusiveStartKey={ExclusiveStartKey})"
-                response = self.request_within_capacity(table, method_str, kce)
+            method_str = f"query(KeyConditionExpression=param, ScanIndexForward={scan_index_forward}{indexname_param}"
+
+            if ExclusiveStartKey is not None:
+                method_str += f", ExclusiveStartKey={ExclusiveStartKey}"
+
+            method_str += ')'
+            response = self.request_within_capacity(table, method_str, kce)
 
             items = response["Items"]
             for item in items:
