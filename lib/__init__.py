@@ -1,4 +1,8 @@
+import os
 import logging
+
+app_home = os.path.abspath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), ".."))
 
 
 def get_logger(modname: str) -> logging.Logger:

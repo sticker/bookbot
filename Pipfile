@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 slackbot = "*"
 "boto3" = "*"
-mojimoji = "*"
 markdown = "*"
 pdfkit = "*"
 

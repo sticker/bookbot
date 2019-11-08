@@ -1,0 +1,69 @@
+import os
+import re
+from datetime import datetime, timedelta
+from slackbot.dispatcher import Message
+from lib import get_logger, app_home
+from lib.aws.dynamodb import Dynamodb
+from lib.util.converter import Converter
+from lib.util.slack import Slack
+
+
+class Impression:
+    def __init__(self):
+        self.logger = get_logger(__name__)
+        self.dynamodb = Dynamodb()
+        self.converter = Converter()
+        self.slack = Slack()
+
+    def save(self, message: Message):
+        now = datetime.now()
+
+        entry_no = ''
+        impression = ''
+        impression_time = ''
+        for block in message.body['blocks']:
+            if not ('text' in block and 'text' in block['text']):
+                continue
+
+            text = block['text']['text']
+            if '*購入番号*' in text:
+                entry_no = re.sub('\\D', '', self.converter.to_hankaku(text))
+            elif '*感想*' in text:
+                impression = re.sub('\*感想\*\n', '', text)
+
+        # 感想登録日
+        self.logger.debug(f"impression={impression}")
+        impression_time = now.strftime("%Y%m%d%H%M%S")
+        self.logger.debug(f"impression_time={impression_time}")
+
+        # 申請者 Slack ID
+        slack_id = self.slack.get_slack_id(message.body['text'])
+
+        # 申請者名
+        user_name = self.slack.get_user_name(slack_id, message)
+        slack_name = user_name[0]
+        real_name = user_name[1]
+
+        # 投稿タイムスタンプ（スレッド投稿のため）
+        ts = message.body['ts']
+
+        self.logger.debug(f"entry_no={entry_no}, impression={impression}, impression_time={impression_time}")
+        response = self.dynamodb.update_bookbot_entry_impression(entry_no, impression, impression_time)
+        self.logger.debug(response)
+        if response is None:
+            self.logger.error(f"感想の登録に失敗しました")
+            message.send(f"<@{slack_id}> 感想の登録に失敗しました...すいません！", thread_ts=ts)
+            return False
+
+        items = self.dynamodb.query_specified_key_value(self.dynamodb.default_table, 'entry_no', entry_no)
+        # プライマリキー指定なので必ず1件取得
+        item = items[0]
+
+        book_type = self.converter.get_book_type_str(item.get('book_type', '本'))
+        entry_date_yyyymmdd = item.get('entry_time', '99999999')[0:8]
+        entry_date = self.converter.get_date_str(entry_date_yyyymmdd)
+
+        reply_texts = [f"<!here> 以下の感想が登録されました！"]
+        reply_texts.append(f"[{entry_no}] <{item['book_url']}|{item['book_name']}>{book_type} at {entry_date} by {real_name}")
+
+        message.send("\n".join(reply_texts), thread_ts=ts)

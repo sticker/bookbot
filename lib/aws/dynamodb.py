@@ -1,7 +1,7 @@
 from lib import get_logger
 from logging import DEBUG, INFO, WARNING
 from boto3 import Session
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Contains, Attr
 from botocore.exceptions import ClientError
 from time import sleep
 import os
@@ -23,6 +23,7 @@ class Dynamodb(object):
         if region_name != '':
             session = Session(region_name=region_name)
             self.resource = session.resource('dynamodb')
+            self.default_table = 'bookbot-entry'
 
     def insert(self, target, item):
         table = self.resource.Table(target)
@@ -87,39 +88,24 @@ class Dynamodb(object):
 
         return convert_items
 
-    def query(self, tablename, key, value, sortkey=None, sortvalue=None, indexname=None, scan_index_forward=True):
+    def request(self, tablename, method_str, param):
         """
         PKey、SKeyを指定してDynamoDBからデータを取得する
         :param tablename:
-        :param key:
-        :param value:
-        :param sortkey:
-        :param sortvalue:
-        :param indexname:
-        :param scan_index_forward:
+        :param method_str:
+        :param kce:
         :return:
         """
         table = self.resource.Table(tablename)
 
-        if sortkey and sortvalue:
-            kce = Key(key).eq(value) & Key(sortkey).eq(sortvalue)
-        elif not sortkey and not sortvalue:
-            kce = Key(key).eq(value)
-
-        indexname_param = ""
-        if indexname is not None:
-            indexname_param = f", IndexName='{indexname}'"
-
         convert_items = []
         ExclusiveStartKey = None
         while True:
-            method_str = f"query(KeyConditionExpression=param, ScanIndexForward={scan_index_forward}{indexname_param}"
-
             if ExclusiveStartKey is not None:
                 method_str += f", ExclusiveStartKey={ExclusiveStartKey}"
 
             method_str += ')'
-            response = self.request_within_capacity(table, method_str, kce)
+            response = self.request_within_capacity(table, method_str, param)
 
             items = response["Items"]
             for item in items:
@@ -130,6 +116,73 @@ class Dynamodb(object):
                 break
 
         return convert_items
+
+    def query_specified_key_value(self, tablename, key, value, sortkey=None, sortvalue=None, indexname=None, scan_index_forward=True):
+        kce = Key(key).eq(value)
+        if sortkey and sortvalue:
+            kce = kce & Key(sortkey).eq(sortvalue)
+
+        indexname_param = ""
+        if indexname is not None:
+            indexname_param = f", IndexName='{indexname}'"
+
+        method_str = f"query(KeyConditionExpression=param, ScanIndexForward={scan_index_forward}{indexname_param}"
+
+        return self.request(tablename, method_str, kce)
+
+    def query_entry_time(self, target_slack_name, target_entry_time_start=None, target_entry_time_end=None):
+        # indexname = 'entry_time-slack_name-index'
+        indexname = 'slack_name-entry_time-index'
+        indexname_param = f", IndexName='{indexname}'"
+
+        scan_index_forward = False
+
+        kce = Key('slack_name').eq(target_slack_name)
+        if target_entry_time_start is not None and target_entry_time_end is not None:
+            kce = kce & Key('entry_time').between(target_entry_time_start, target_entry_time_end)
+        self.logger.debug(kce)
+
+        method_str = f"query(KeyConditionExpression=param, ScanIndexForward={scan_index_forward}{indexname_param}"
+        self.logger.debug(method_str)
+
+        return self.request(self.default_table, method_str, kce)
+
+    def scan_entry_time(self, target_entry_time_start=None, target_entry_time_end=None):
+        fe = Key('entry_time').between(target_entry_time_start, target_entry_time_end)
+        method_str = f"scan(FilterExpression=param"
+        self.logger.debug(method_str)
+
+        return self.request(self.default_table, method_str, fe)
+
+    def update_bookbot_entry_impression(self, entry_no, impression, impression_time):
+        """
+        テーブル[bookbot-entry]のimpression, imporession_timeを更新する
+        :param entry_no:読み込み条件[プライマリパーテンションキー]
+        :param impression: 更新後のimpressionの値
+        :param impression_time:更新後のimpression_timeの値
+        :return:
+        """
+        table = self.resource.Table(self.default_table)
+        try:
+            method_str = f'update_item(\
+                Key={{\
+                    "entry_no": "{entry_no}"\
+                }},\
+                UpdateExpression="set impression=:impression, impression_time=:impression_time",\
+                ExpressionAttributeValues=param,\
+                ReturnValues="UPDATED_NEW"\
+            )'
+
+            param = dict()
+            param[':impression'] = impression
+            param[':impression_time'] = impression_time
+
+            self.logger.debug(f"method_str={method_str}")
+            response = self.request_within_capacity(table, method_str, param)
+            return response
+        except Exception as err:
+            self.logger.error("{}".format(err))
+            return None
 
     def emptystr_to_none(self, item):
         '''
@@ -206,3 +259,39 @@ class Dynamodb(object):
                     retries += 1
 
         return None
+
+    def atomic_counter(self, table_name: str, prefix: str):
+        """
+        * アトミックカウンタ用テーブルをインクリメントして結果を返却する
+        :param table_name:
+        :param prefix:
+        :param min_value:
+        :param max_value:
+        :return:
+        """
+        try:
+            table = self.resource.Table(table_name)
+            response = table.update_item(
+                Key={
+                    'prefix': prefix,
+                },
+                UpdateExpression="set atomic_counter = atomic_counter + :increase",
+                ExpressionAttributeValues={
+                    ':increase': int(1),
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+            # インクリメント後のカウンター値を取得、取得できない場合は-1を返す
+            atomic_counter = response.get('Attributes', {}).get('atomic_counter', -1)
+            self.logger.debug(f"prefix={prefix}, atomic_counter={atomic_counter}")
+
+            # カウンター値が取得できなければ例外処理へ
+            if atomic_counter == -1:
+                raise Exception("アトミックカウンタが取得できません。", f"prefix={prefix}", f"table_name={table_name}")
+
+        except Exception as err:
+            # その他エラー
+            self.logger.error("{}".format(err))
+            raise Exception("アトミックカウンタが取得できません。", f"prefix={prefix}", f"table_name={table_name}")
+
+        return atomic_counter

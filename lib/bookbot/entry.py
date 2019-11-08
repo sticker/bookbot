@@ -1,18 +1,23 @@
 import os
 import re
-import mojimoji
 import pdfkit
 from markdown import Markdown
 from datetime import datetime
 from slackbot.dispatcher import Message
-from lib import get_logger
+from lib import get_logger, app_home
 from lib.aws.dynamodb import Dynamodb
+from lib.util.converter import Converter
+from lib.util.validation import Validation
+from lib.util.slack import Slack
 
 
 class Entry:
     def __init__(self):
         self.logger = get_logger(__name__)
         self.dynamodb = Dynamodb()
+        self.converter = Converter()
+        self.validation = Validation()
+        self.slack = Slack()
 
     def save(self, message: Message):
 
@@ -22,156 +27,124 @@ class Entry:
         book_type = ''
         book_price = ''
         book_url = ''
+        purpose = ''
         for block in message.body['blocks']:
             if not ('text' in block and 'text' in block['text']):
                 continue
 
             text = block['text']['text']
-            if '*書籍名*' in text:
-                book_name = re.sub('\*書籍名\*|\n', '', text)
+            if '*題名*' in text:
+                book_name = re.sub('\*題名\*|\n', '', text)
             elif '*形式*' in text:
                 book_type = re.sub('\*形式\*|\n', '', text)
             elif '*金額（半角数字）*' in text:
                 # book_price = re.sub('\*金額\*| |,|\n', '', text)
-                book_price = re.sub('\\D', '', mojimoji.zen_to_han(text))
+                book_price = re.sub('\\D', '', self.converter.to_hankaku(text))
             elif '*詳細リンク（Amazonなど）*' in text:
                 book_url = re.sub('\*詳細リンク（Amazonなど）\*|<|>|\n', '', text)
+            elif '*購入目的*' in text:
+                purpose = re.sub('\*購入目的\*|<|>|\n', '', text)
+
+        # 投稿タイムスタンプ（スレッド投稿のため）
+        ts = message.body['ts']
 
         # パラメータチェック
-        if not self.__validate(book_name=book_name, book_price=book_price, book_url=book_url, message=message):
-            self.logger.debug("パラメータチェックNG")
-            return
+        # if not self.validation.validate_entry(book_name=book_name, book_price=book_price, book_url=book_url, message=message):
+        #     self.logger.debug("パラメータチェックNG")
+        #     return
 
         # 申請日
         entry_time = now.strftime("%Y%m%d%H%M%S")
 
         # 申請者 Slack ID
-        slack_id = self.get_slack_id(message.body['text'])
+        slack_id = self.slack.get_slack_id(message.body['text'])
 
         # 申請者名
-        user_name = self.get_user_name(slack_id, message)
+        user_name = self.slack.get_user_name(slack_id, message)
         slack_name = user_name[0]
         real_name = user_name[1]
 
         # そのユーザが年間25000円以上買っていないか
-        if not self.check_money_limit_per_user(slack_name):
+        (result, total_price_in_this_year) = self.check_money_limit_per_user(slack_name, book_price)
+        if not result:
             self.logger.debug("年間購入金額上限を超えています")
+            message.send(f"<@{slack_id}> 年間購入金額上限を超えるため登録できません。", thread_ts=ts)
+
             return
 
         # 受付番号
-        # TODO: アトミックカウンタでシーケンス番号にしたほうがいいか
-        entry_no = now.strftime("%Y%m%d%H%M%S%f")[:-3]
+        # entry_no = now.strftime("%Y%m%d%H%M%S%f")[:-3]
+        # アトミックカウンタでシーケンス番号を発行し文字列として取得する
+        entry_no = str(self.dynamodb.atomic_counter('atomic_counter', 'entry_no'))
+
+        # 感想（空で登録）
+        impression = ''
 
         item = {
             'entry_no': entry_no,
             'book_name': book_name,
             'book_type': book_type,
             'book_price': book_price,
+            'total_price_in_this_year': total_price_in_this_year,
             'book_url': book_url,
+            'purpose': purpose,
             'entry_time': entry_time,
             'slack_id': slack_id,
             'slack_name': slack_name,
-            'real_name': real_name
+            'real_name': real_name,
+            'impression': impression
         }
         self.logger.info(f"item={item}")
 
-        self.dynamodb.insert('bookbot-entry', item)
+        self.dynamodb.insert(self.dynamodb.default_table, item)
 
-        reply_texts = [f"<@{slack_id}> 登録しました！補助対象になりますので承認PDFを作成します。"]
-        message.send("\n".join(reply_texts))
+        reply_texts = [f"<@{slack_id}> 登録しました！購入番号: {entry_no} 今年度購入金額合計: {total_price_in_this_year}円"]
+        reply_texts.append('補助対象になりますので承認PDFを作成します。')
+        message.send("\n".join(reply_texts), thread_ts=ts)
 
+        item['total_price_in_this_year'] = total_price_in_this_year
         # 承認内容のPDFを作成してSlackにアップ　バックアップでS3にアップ
-        self.upload_approved(message, item)
-
-
-    def __validate(self, **kwargs):
-        check_ok = True
-        # 各パラメータのバリデーションを呼び出す
-        if not self.__validate_book_name(kwargs['book_name'], kwargs['message']):
-            check_ok = False
-        if not self.__validate_book_price(kwargs['book_price'], kwargs['message']):
-            check_ok = False
-        if not self.__validate_book_url(kwargs['book_url'], kwargs['message']):
-            check_ok = False
-
-        return check_ok
-
-    def __validate_book_name(self, book_name: str, message: Message) -> bool:
-        """
-        書籍名のバリデーション
-        :param book_name: 書籍名
-        :return:
-        """
-        # 何チェックする？
-        return True
-
-    def __validate_book_price(self, book_price: str, message: Message) -> bool:
-        """
-        金額のバリデーション
-        :param book_price: 金額
-        :return:
-        """
-        if not book_price.isdecimal():
-            message.reply("金額は数字で入力してください")
-            return False
-
-        return True
-
-    def __validate_book_url(self, book_url: str, message: Message) -> bool:
-        """
-        詳細URLのバリデーション
-        :param book_url: 詳細URL
-        :param message:
-        :return:
-        """
-        return True
-
-    def get_slack_id(self, text: str) -> str:
-        slack_id = re.findall('<@(.*)>さん', text)
-        return slack_id[0]
-
-    def get_user_name(self, slack_id: str, message: Message) -> tuple:
-        user = message._client.get_user(slack_id)
-        self.logger.debug(user)
-        slack_name = user['name']
-        real_name = user['real_name']
-
-        return (slack_name, real_name)
-
-    def check_money_limit_per_user(self, slack_name: str) -> bool:
-        # ユーザと期間でフィルタして取得
-        return True
-
-    def upload_approved(self, message: Message, item: dict):
+        # self.upload_approved(message, item)
         # パーマリンクを取得
-        item['permalink'] = self.get_message_permalink(message)
+        item['permalink'] = self.slack.get_message_permalink(message)
         # 保存先PDFファイルパス
-        save_pdf_path = f"file/{item['entry_no']}.pdf"
+        save_pdf_path = f"{app_home}/file/{item['entry_no']}_{item['slack_name']}.pdf"
         # 承認PDF作成
         if not self.make_approved_pdf(item, save_pdf_path):
             self.logger.warning('承認PDFの作成に失敗しました')
             message.send(f"<@{item['slack_id']}> 承認PDFの作成に失敗しました...すいません！")
             return False
 
-        channel_name = self.get_channel_name(message)
+        channel_name = self.slack.get_channel_name(message)
         self.logger.debug(channel_name)
 
-        message._client.upload_file(channel=channel_name, fname=None, fpath=save_pdf_path,
-                                    comment="このファイルと購入時の領収書を添付して立替金申請をしてください。")
+        self.slack.upload_file(message, channel_name,
+                               fpath=save_pdf_path,
+                               comment="このPDFと購入時の領収書を添付して立替金申請をしてください。",
+                               thread_ts=ts)
 
         # TODO: S3にもアップロード
 
-        return True
+    def check_money_limit_per_user(self, slack_name: str, book_price: str) -> tuple:
+        this_year_start, this_year_end = self.converter.get_this_year_from_today()
 
-    def get_channel_name(self, message: Message) -> str:
-        res = message._client.webapi.channels.info(channel=message.body['channel'])
-        self.logger.debug(res)
-        self.logger.debug(res.body)
+        target_entry_time_start = this_year_start.ljust(14, '0')
+        target_entry_time_end = this_year_end.ljust(14, '9')
+        self.logger.debug(target_entry_time_start)
+        self.logger.debug(target_entry_time_end)
 
-        return res.body['channel']['name']
+        items = self.dynamodb.query_entry_time(slack_name, target_entry_time_start, target_entry_time_end)
+
+        total_price_in_this_year = sum(map(lambda x: int(x['book_price']), items))
+        self.logger.debug(f"対象ユーザ:{slack_name}, 今年度購入金額合計:{total_price_in_this_year}, 今回購入金額:{book_price}")
+
+        if total_price_in_this_year + int(book_price) >= 25000:
+            self.logger.info(f"今年度の購入金額が25000円を超えてしまいます 対象ユーザ:{slack_name}, 今年度購入金額合計:{total_price_in_this_year}, 今回購入金額:{book_price}")
+            return (False, total_price_in_this_year)
+
+        return (True, total_price_in_this_year + int(book_price))
 
     def make_approved_html(self, item: dict) -> str:
-        # entry_date = f"{item['entry_time'][0:4]}-{item['entry_time'][4:6]}-{item['entry_time'][6:8]} {item['entry_time'][8:10]}:{item['entry_time'][10:12]}:{item['entry_time'][12:14]}"
         entry_date = "%s/%s/%s %s:%s:%s" % (item['entry_time'][0:4],
                                             item['entry_time'][4:6],
                                             item['entry_time'][6:8],
@@ -189,10 +162,16 @@ class Entry:
 <{item['permalink']}>
 
 #### 対象書籍
-- <{item['book_url']}|{item['book_name']}>{item['book_type']}
+- [{item['book_name']}]({item['book_url']}){book_type}
 
-#### 申請金額
-- {item['book_price']}
+#### 購入目的
+- {item['purpose']}
+
+#### 購入金額
+- {item['book_price']} 円
+
+#### 今年度購入金額合計
+- {item['total_price_in_this_year']} 円
 """
         self.logger.debug(md_text)
 
@@ -211,13 +190,13 @@ class Entry:
         html = self.make_approved_html(item)
 
         # PDFファイルを保存
-        pdfkit.from_string(html, save_path)
+        try:
+            pdfkit.from_string(html, save_path)
+        except:
+            import traceback
+            traceback.print_exc()
+            return False
 
         return save_path
 
-    def get_message_permalink(self, message: Message) -> str:
-        res = message._client.webapi.chat.get_permalink(channel=message.body['channel'], message_ts=message.body['ts'])
-        self.logger.debug(res)
-        self.logger.debug(res.body)
 
-        return res.body['permalink']
