@@ -45,12 +45,15 @@ def workflow_handler(message: Message):
 
 
 @respond_to('list\s*(.*)')
-def list_handler(message: Message, option):
+def list_handler(message: Message, search_words_str):
     logging.info(message.body)
-    logging.info(option)
-    logging.info(option.strip())
+    search_words = search_words_str.strip().split()
+    logging.info(search_words)
 
-    list_history.default(message)
+    if len(search_words) == 0 or len(search_words) == 1 and search_words[0] == '':
+        list_history.default(message)
+    else:
+        list_history.search(message, search_words)
 
 
 @respond_to('desc\s*(\d*)')

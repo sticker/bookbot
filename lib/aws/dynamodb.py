@@ -154,6 +154,34 @@ class Dynamodb(object):
 
         return self.request(self.default_table, method_str, fe)
 
+    def _scan_specified_attr_contains(self, attr_name, search_words):
+        fe = None
+        for search_word in search_words:
+            if fe is None:
+                fe = Attr(attr_name).contains(search_word)
+            else:
+                fe = fe | Attr(attr_name).contains(search_word)
+        method_str = f"scan(FilterExpression=param"
+        self.logger.debug(method_str)
+
+        return self.request(self.default_table, method_str, fe)
+
+    def scan_contains_search_words(self, search_words):
+        fe = None
+        for search_word in search_words:
+            if fe is None:
+                fe = Attr('book_name').contains(search_word) | \
+                     Attr('slack_name').contains(search_word) | \
+                     Attr('real_name').contains(search_word)
+            else:
+                fe = fe & Attr('book_name').contains(search_word) | \
+                     Attr('slack_name').contains(search_word) | \
+                     Attr('real_name').contains(search_word)
+        method_str = f"scan(FilterExpression=param"
+        self.logger.debug(method_str)
+
+        return self.request(self.default_table, method_str, fe)
+
     def update_bookbot_entry_impression(self, entry_no, impression, impression_time):
         """
         テーブル[bookbot-entry]のimpression, imporession_timeを更新する

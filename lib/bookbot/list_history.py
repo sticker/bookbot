@@ -1,3 +1,5 @@
+import simplejson
+from decimal import Decimal
 from lib import get_logger
 from lib.aws.dynamodb import Dynamodb
 from lib.util.converter import Converter
@@ -12,19 +14,32 @@ class ListHistory:
     def default(self, message):
         items = self.dynamodb.find(self.dynamodb.default_table)
         self.logger.info(items)
-        # 申請日でソート TODO: セカンダリインデックスをqueryで検索してソート
+
+        if len(items) == 0:
+            message.send('見つかりませんでした！')
+            return
+
+        # 申請日でソート
         items.sort(key=lambda x: x['entry_time'], reverse=True)
 
         text_list = list()
         for item in items:
-            entry_no = item.get('entry_no', '-')
-            book_url = item.get('book_url', '-')
-            book_name = item.get('book_name', '-')
-            book_type = self.converter.get_book_type_str(item.get('book_type', '本'))
-            entry_date_yyyymmdd = item.get('entry_time', '99999999')[0:8]
-            entry_date = self.converter.get_date_str(entry_date_yyyymmdd)
-            real_name = item.get('real_name', '-')
+            text_list.append(self.converter.get_list_str(item))
 
-            text_list.append(f"[{entry_no}] <{book_url}|{book_name}>{book_type} at {entry_date} by {real_name}")
+        message.send("\n".join(text_list))
+
+    def search(self, message, search_words):
+        items = self.dynamodb.scan_contains_search_words(search_words)
+
+        if len(items) == 0:
+            message.send('見つかりませんでした！')
+            return
+
+        # 申請日でソート
+        items.sort(key=lambda x: x['entry_time'], reverse=True)
+
+        text_list = list()
+        for item in items:
+            text_list.append(self.converter.get_list_str(item))
 
         message.send("\n".join(text_list))

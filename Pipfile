@@ -8,6 +8,7 @@ slackbot = "*"
 "boto3" = "*"
 markdown = "*"
 pdfkit = "*"
+simplejson = "*"
 
 [dev-packages]
 pytest = "*"

@@ -29,7 +29,7 @@ class Impression:
             if '*購入番号*' in text:
                 entry_no = re.sub('\\D', '', self.converter.to_hankaku(text))
             elif '*感想*' in text:
-                impression = re.sub('\*感想\*\n', '', text)
+                impression = re.sub('\*感想\*\n', '', text).strip()
 
         # 感想登録日
         self.logger.debug(f"impression={impression}")
@@ -47,6 +47,15 @@ class Impression:
         # 投稿タイムスタンプ（スレッド投稿のため）
         ts = message.body['ts']
 
+        # 更新対象レコードを取得
+        items = self.dynamodb.query_specified_key_value(self.dynamodb.default_table, 'entry_no', entry_no)
+        # プライマリキー指定なので必ず1件取得
+        item = items[0]
+
+        if item['real_name'] != real_name:
+            message.send(f"<@{slack_id}> 購入者本人以外は感想登録できません！", thread_ts=ts)
+            return False
+
         self.logger.debug(f"entry_no={entry_no}, impression={impression}, impression_time={impression_time}")
         response = self.dynamodb.update_bookbot_entry_impression(entry_no, impression, impression_time)
         self.logger.debug(response)
@@ -55,15 +64,11 @@ class Impression:
             message.send(f"<@{slack_id}> 感想の登録に失敗しました...すいません！", thread_ts=ts)
             return False
 
-        items = self.dynamodb.query_specified_key_value(self.dynamodb.default_table, 'entry_no', entry_no)
-        # プライマリキー指定なので必ず1件取得
-        item = items[0]
-
-        book_type = self.converter.get_book_type_str(item.get('book_type', '本'))
-        entry_date_yyyymmdd = item.get('entry_time', '99999999')[0:8]
-        entry_date = self.converter.get_date_str(entry_date_yyyymmdd)
-
+        # book_type = self.converter.get_book_type_str(item.get('book_type', '本'))
+        # entry_date_yyyymmdd = item.get('entry_time', '99999999')[0:8]
+        # entry_date = self.converter.get_date_str(entry_date_yyyymmdd)
+        item['impression'] = impression
         reply_texts = [f"<!here> 以下の感想が登録されました！"]
-        reply_texts.append(f"[{entry_no}] <{item['book_url']}|{item['book_name']}>{book_type} at {entry_date} by {real_name}")
+        reply_texts.append(self.converter.get_list_str(item))
 
         message.send("\n".join(reply_texts), thread_ts=ts)

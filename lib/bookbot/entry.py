@@ -18,6 +18,8 @@ class Entry:
         self.converter = Converter()
         self.validation = Validation()
         self.slack = Slack()
+        # 年間上限金額
+        self.max_amount = 25000
 
     def save(self, message: Message):
 
@@ -37,7 +39,7 @@ class Entry:
                 book_name = re.sub('\*題名\*|\n', '', text)
             elif '*形式*' in text:
                 book_type = re.sub('\*形式\*|\n', '', text)
-            elif '*金額（半角数字）*' in text:
+            elif '*税込金額（半角数字）*' in text:
                 # book_price = re.sub('\*金額\*| |,|\n', '', text)
                 book_price = re.sub('\\D', '', self.converter.to_hankaku(text))
             elif '*詳細リンク（Amazonなど）*' in text:
@@ -64,8 +66,8 @@ class Entry:
         slack_name = user_name[0]
         real_name = user_name[1]
 
-        # そのユーザが年間25000円以上買っていないか
-        (result, total_price_in_this_year) = self.check_money_limit_per_user(slack_name, book_price)
+        # そのユーザが年間上限金額以上買っていないか
+        (result, total_price_in_this_year) = self.check_max_amount_per_user(slack_name, book_price)
         if not result:
             self.logger.debug("年間購入金額上限を超えています")
             message.send(f"<@{slack_id}> 年間購入金額上限を超えるため登録できません。", thread_ts=ts)
@@ -98,7 +100,9 @@ class Entry:
 
         self.dynamodb.insert(self.dynamodb.default_table, item)
 
-        reply_texts = [f"<@{slack_id}> 登録しました！購入番号: {entry_no} 今年度購入金額合計: {total_price_in_this_year}円"]
+        reply_texts = [f"<@{slack_id}> 登録しました！購入番号: [{entry_no}]"]
+        reply_texts.append(f"今年度購入金額合計: {total_price_in_this_year}円")
+        reply_texts.append(f"残り {self.max_amount - total_price_in_this_year}円 までOKです。")
         reply_texts.append('補助対象になりますので承認PDFを作成します。')
         message.send("\n".join(reply_texts), thread_ts=ts)
 
@@ -125,7 +129,7 @@ class Entry:
 
         # TODO: S3にもアップロード
 
-    def check_money_limit_per_user(self, slack_name: str, book_price: str) -> tuple:
+    def check_max_amount_per_user(self, slack_name: str, book_price: str) -> tuple:
         this_year_start, this_year_end = self.converter.get_this_year_from_today()
 
         target_entry_time_start = this_year_start.ljust(14, '0')
@@ -138,8 +142,8 @@ class Entry:
         total_price_in_this_year = sum(map(lambda x: int(x['book_price']), items))
         self.logger.debug(f"対象ユーザ:{slack_name}, 今年度購入金額合計:{total_price_in_this_year}, 今回購入金額:{book_price}")
 
-        if total_price_in_this_year + int(book_price) >= 25000:
-            self.logger.info(f"今年度の購入金額が25000円を超えてしまいます 対象ユーザ:{slack_name}, 今年度購入金額合計:{total_price_in_this_year}, 今回購入金額:{book_price}")
+        if total_price_in_this_year + int(book_price) >= self.max_amount:
+            self.logger.info(f"今年度の購入金額が{self.max_amount}円を超えてしまいます 対象ユーザ:{slack_name}, 今年度購入金額合計:{total_price_in_this_year}, 今回購入金額:{book_price}")
             return (False, total_price_in_this_year)
 
         return (True, total_price_in_this_year + int(book_price))
