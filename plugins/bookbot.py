@@ -47,7 +47,7 @@ def workflow_handler(message: Message):
 @respond_to('list\s*(.*)')
 def list_handler(message: Message, search_words_str):
     logging.info(message.body)
-    search_words = search_words_str.strip().split()
+    search_words = search_words_str.strip().replace("　", " ").split()
     logging.info(search_words)
 
     if len(search_words) == 0 or len(search_words) == 1 and search_words[0] == '':

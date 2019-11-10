@@ -13,11 +13,22 @@ RUN apt-get update -qq \
       wget \
       unzip \
       gdebi \
-      libpng-dev \
-      libjpeg-dev \
-      libssl-dev \
+      multiarch-support \
  && apt-get autoremove \
  && apt-get clean
+
+RUN wget http://security.ubuntu.com/ubuntu/pool/main/libp/libpng/libpng12-0_1.2.54-1ubuntu1.1_amd64.deb && \
+    dpkg -i libpng12-0_1.2.54-1ubuntu1.1_amd64.deb && \
+    rm -f libpng12-0_1.2.54-1ubuntu1.1_amd64.deb
+
+RUN wget http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.0.0_1.0.1t-1+deb8u12_amd64.deb && \
+    dpkg -i libssl1.0.0_1.0.1t-1+deb8u12_amd64.deb && \
+    rm -f libssl1.0.0_1.0.1t-1+deb8u12_amd64.deb
+
+RUN wget https://cloudfront.debian.net/debian-archive/debian/pool/main/libj/libjpeg8/libjpeg8_8d-1+deb7u1_amd64.deb && \
+    dpkg -i libjpeg8_8d-1+deb7u1_amd64.deb && \
+    rm -f libjpeg8_8d-1+deb7u1_amd64.deb
+
 RUN wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.2.1/wkhtmltox-0.12.2.1_linux-wheezy-amd64.deb && \
     dpkg -i wkhtmltox-0.12.2.1_linux-wheezy-amd64.deb && \
     rm -f wkhtmltox-0.12.2.1_linux-wheezy-amd64.deb
