@@ -21,7 +21,9 @@ class Delete:
         text_list = list()
 
         # レコード削除
-        self.dynamodb.remove(self.dynamodb.default_table, entry_no)
+        key = dict()
+        key['entry_no'] = entry_no
+        self.dynamodb.remove(self.dynamodb.default_table, key)
         text_list.append("以下の購入データを削除しました！")
 
         # プライマリキー指定なので必ず1件取得

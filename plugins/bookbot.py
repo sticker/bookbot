@@ -58,15 +58,15 @@ def list_handler(message: Message, search_words_str):
         list_history.search(message, search_words)
 
 
-@respond_to('desc\s*(\d*)')
-def list_handler(message: Message, entry_no):
+@respond_to('(desc|describe|display|詳細)\s*(\d*)')
+def list_handler(message: Message, commmand, entry_no):
     logging.info(message.body)
 
     describe.specified_entry_no(message, entry_no)
 
 
-@respond_to('delete|del|rm\s*(\d*)')
-def delete_handler(message: Message, entry_no):
+@respond_to('(delete|del|rm|削除)\s*(\d*)')
+def delete_handler(message: Message, command, entry_no):
     logging.info(message.body)
 
     delete.specified_entry_no(message, entry_no)
