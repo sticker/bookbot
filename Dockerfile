@@ -4,7 +4,9 @@ MAINTAINER kakincamp-team <isp-kakin-camp@list.nifty.co.jp>
 # 日本時間対応
 ENV TZ=Asia/Tokyo
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq \
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -qq \
  && apt-get install -y \
       build-essential \
       xorg \
