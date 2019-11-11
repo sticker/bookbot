@@ -39,8 +39,7 @@ class Entry:
                 book_name = re.sub('\*題名\*|\n', '', text)
             elif '*形式*' in text:
                 book_type = re.sub('\*形式\*|\n', '', text)
-            elif '*税込金額（半角数字）*' in text:
-                # book_price = re.sub('\*金額\*| |,|\n', '', text)
+            elif '*立替金額（税込）*' in text:
                 book_price = re.sub('\\D', '', self.converter.to_hankaku(text))
             elif '*詳細リンク（Amazonなど）*' in text:
                 book_url = re.sub('\*詳細リンク（Amazonなど）\*|<|>|\n', '', text)
