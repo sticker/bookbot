@@ -4,7 +4,7 @@ from lib.util.converter import Converter
 from lib.bookbot.list_history import ListHistory
 
 
-class Describe:
+class Delete:
     def __init__(self):
         self.logger = get_logger(__name__)
         self.dynamodb = Dynamodb()
@@ -12,15 +12,20 @@ class Describe:
         self.list_history = ListHistory()
 
     def specified_entry_no(self, message, entry_no):
+        # 削除対象レコードを取得
         items = self.dynamodb.query_specified_key_value(self.dynamodb.default_table, 'entry_no', entry_no)
-        # プライマリキー指定なので必ず1件取得
-        item = items[0]
+        if len(items) == 0:
+            message.send("対象の購入データが見つかりません")
+            return
 
         text_list = list()
-        text_list.append(self.converter.get_list_str(item))
 
-        impression = item.get('impression')
-        if impression is not None:
-            text_list.append(f"```\n{impression}\n```")
+        # レコード削除
+        self.dynamodb.remove(self.dynamodb.default_table, entry_no)
+        text_list.append("以下の購入データを削除しました！")
+
+        # プライマリキー指定なので必ず1件取得
+        item = items[0]
+        text_list.append(self.converter.get_list_str(item))
 
         message.send("\n".join(text_list))

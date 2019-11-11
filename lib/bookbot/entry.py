@@ -77,7 +77,7 @@ class Entry:
         # 受付番号
         # entry_no = now.strftime("%Y%m%d%H%M%S%f")[:-3]
         # アトミックカウンタでシーケンス番号を発行し文字列として取得する
-        entry_no = str(self.dynamodb.atomic_counter('atomic_counter', 'entry_no'))
+        entry_no = str(self.dynamodb.atomic_counter('atomic-counter', 'entry_no'))
 
         # 感想（空で登録）
         impression = ''

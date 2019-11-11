@@ -5,6 +5,7 @@ from lib.bookbot.entry import Entry
 from lib.bookbot.impression import Impression
 from lib.bookbot.list_history import ListHistory
 from lib.bookbot.describe import Describe
+from lib.bookbot.delete import Delete
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -13,6 +14,7 @@ entry = Entry()
 impression = Impression()
 list_history = ListHistory()
 describe = Describe()
+delete = Delete()
 
 @respond_to('help')
 @listen_to('Can someone help me?')
@@ -61,3 +63,11 @@ def list_handler(message: Message, entry_no):
     logging.info(message.body)
 
     describe.specified_entry_no(message, entry_no)
+
+
+@respond_to('delete|del|rm\s*(\d*)')
+def delete_handler(message: Message, entry_no):
+    logging.info(message.body)
+
+    delete.specified_entry_no(message, entry_no)
+
