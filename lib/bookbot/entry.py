@@ -65,11 +65,11 @@ class Entry:
         slack_name = user_name[0]
         real_name = user_name[1]
 
-        # そのユーザが年間上限金額以上買っていないか
+        # そのユーザが年間上限金額以上立替していないか
         (result, total_price_in_this_year) = self.check_max_amount_per_user(slack_name, book_price)
         if not result:
-            self.logger.debug("年間購入金額上限を超えています")
-            message.send(f"<@{slack_id}> 年間購入金額上限を超えるため登録できません。", thread_ts=ts)
+            self.logger.debug("年間立替金額上限を超えています")
+            message.send(f"<@{slack_id}> 年間立替金額上限を超えるため登録できません。", thread_ts=ts)
 
             return
 
@@ -99,9 +99,15 @@ class Entry:
 
         self.dynamodb.insert(self.dynamodb.default_table, item)
 
-        reply_texts = [f"<@{slack_id}> 登録しました！購入番号: [{entry_no}]"]
-        reply_texts.append(f"今年度購入金額合計: {total_price_in_this_year}円")
+        reply_texts = [f"<@{slack_id}> 登録しました！登録番号: [{entry_no}]"]
+        reply_texts.append(f"今年度立替金額合計: {total_price_in_this_year}円")
         reply_texts.append(f"残り {self.max_amount - total_price_in_this_year}円 までOKです。")
+
+        if book_price == '0':
+            self.logger.info("0円のため承認PDFは作成しません")
+            message.send("\n".join(reply_texts), thread_ts=ts)
+            return
+
         reply_texts.append('補助対象になりますので承認PDFを作成します。')
         message.send("\n".join(reply_texts), thread_ts=ts)
 
@@ -139,10 +145,10 @@ class Entry:
         items = self.dynamodb.query_entry_time(slack_name, target_entry_time_start, target_entry_time_end)
 
         total_price_in_this_year = sum(map(lambda x: int(x['book_price']), items))
-        self.logger.debug(f"対象ユーザ:{slack_name}, 今年度購入金額合計:{total_price_in_this_year}, 今回購入金額:{book_price}")
+        self.logger.debug(f"対象ユーザ:{slack_name}, 今年度立替金額合計:{total_price_in_this_year}, 今回立替金額:{book_price}")
 
         if total_price_in_this_year + int(book_price) >= self.max_amount:
-            self.logger.info(f"今年度の購入金額が{self.max_amount}円を超えてしまいます 対象ユーザ:{slack_name}, 今年度購入金額合計:{total_price_in_this_year}, 今回購入金額:{book_price}")
+            self.logger.info(f"今年度の立替金額が{self.max_amount}円を超えてしまいます 対象ユーザ:{slack_name}, 今年度立替金額合計:{total_price_in_this_year}, 今回立替金額:{book_price}")
             return (False, total_price_in_this_year)
 
         return (True, total_price_in_this_year + int(book_price))
@@ -170,10 +176,10 @@ class Entry:
 #### 購入目的
 - {item['purpose']}
 
-#### 購入金額
+#### 立替金額
 - {item['book_price']} 円
 
-#### 今年度購入金額合計
+#### 今年度立替金額合計
 - {item['total_price_in_this_year']} 円
 """
         self.logger.debug(md_text)

@@ -15,7 +15,7 @@ class Delete:
         # 削除対象レコードを取得
         items = self.dynamodb.query_specified_key_value(self.dynamodb.default_table, 'entry_no', entry_no)
         if len(items) == 0:
-            message.send("対象の購入データが見つかりません")
+            message.send("対象の登録データが見つかりません")
             return
 
         text_list = list()
@@ -24,7 +24,7 @@ class Delete:
         key = dict()
         key['entry_no'] = entry_no
         self.dynamodb.remove(self.dynamodb.default_table, key)
-        text_list.append("以下の購入データを削除しました！")
+        text_list.append("以下の登録データを削除しました！")
 
         # プライマリキー指定なので必ず1件取得
         item = items[0]

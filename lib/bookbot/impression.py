@@ -26,7 +26,7 @@ class Impression:
                 continue
 
             text = block['text']['text']
-            if '*購入番号*' in text:
+            if '*登録番号*' in text:
                 entry_no = re.sub('\\D', '', self.converter.to_hankaku(text))
             elif '*感想*' in text:
                 impression = re.sub('\*感想\*\n', '', text).strip()
