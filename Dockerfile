@@ -4,7 +4,7 @@ MAINTAINER kakincamp-team <isp-kakin-camp@list.nifty.co.jp>
 # 日本時間対応
 ENV TZ=Asia/Tokyo
 
-ARG DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -qq \
  && apt-get install -y \

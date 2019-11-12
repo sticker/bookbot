@@ -19,7 +19,7 @@ describe = Describe()
 delete = Delete()
 slack = Slack()
 
-default_channel_name = os.getenv('DEFAULT_CHANNEL_NAME', 'test_hoshino')
+default_channel_id = os.getenv('DEFAULT_CHANNEL_ID', 'CC6DENSDV')
 
 @respond_to('help')
 @listen_to('Can someone help me?')
@@ -74,8 +74,8 @@ def list_handler(message: Message, commmand, entry_no):
 def delete_handler(message: Message, command, entry_no):
     logging.info(message.body)
 
-    if slack.get_channel_name(message) != default_channel_name:
-        message.send(f"公式チャンネル #{default_channel_name} で実行してください！")
+    if message.body['channel'] != default_channel_id:
+        message.send(f"公式チャンネル #{slack.get_channel_name(message, channel_id=default_channel_id)} で実行してください！")
         return
 
     delete.specified_entry_no(message, entry_no)

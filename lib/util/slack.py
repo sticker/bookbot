@@ -18,8 +18,10 @@ class Slack:
 
         return (slack_name, real_name)
 
-    def get_channel_name(self, message: Message) -> str:
-        res = message._client.webapi.channels.info(channel=message.body['channel'])
+    def get_channel_name(self, message: Message, channel_id=None) -> str:
+        if channel_id is None:
+            channel_id = message.body['channel']
+        res = message._client.webapi.channels.info(channel=channel_id)
 
         return res.body['channel']['name']
 
