@@ -6,6 +6,7 @@ from datetime import datetime
 from slackbot.dispatcher import Message
 from lib import get_logger, app_home
 from lib.aws.dynamodb import Dynamodb
+from lib.aws.s3 import S3
 from lib.util.converter import Converter
 from lib.util.validation import Validation
 from lib.util.slack import Slack
@@ -15,6 +16,7 @@ class Entry:
     def __init__(self):
         self.logger = get_logger(__name__)
         self.dynamodb = Dynamodb()
+        self.s3 = S3()
         self.converter = Converter()
         self.validation = Validation()
         self.slack = Slack()
@@ -132,7 +134,9 @@ class Entry:
                                comment="このPDFと購入時の領収書を添付して立替金申請をしてください。",
                                thread_ts=ts)
 
-        # TODO: S3にもアップロード
+        # S3にもアップロード
+        this_year = self.converter.get_this_year_from_today()[0][0:4]  # 今年度のYYYY
+        self.s3.upload_to_pdf(save_pdf_path, process_ym=this_year)
 
     def check_max_amount_per_user(self, slack_name: str, book_price: str) -> tuple:
         this_year_start, this_year_end = self.converter.get_this_year_from_today()
