@@ -31,11 +31,11 @@ def help(message: Message):
     """
     botname = "bookbot"
     usages = list()
-    usages.append(f"`{botname} list` : 過去1年間の登録情報をリスト表示する")
-    usages.append(f"`{botname} list [検索文字]` : 題名・氏名・Slack名 で絞り込む（複数指定でAND検索）")
-    usages.append(f"`{botname} desc [登録番号]` : 指定した番号の登録情報を感想付きで表示する")
-    usages.append(f"`{botname} rm [登録番号]` : 指定した番号の登録情報を削除する")
-    message.reply("\n".join(usages))
+    usages.append(f"`@{botname} list` : 過去1年間の登録情報をリスト表示する")
+    usages.append(f"`@{botname} list [検索文字]` : 題名・氏名・Slack名 で絞り込む（複数指定でAND検索）")
+    usages.append(f"`@{botname} desc [登録番号]` : 指定した番号の登録情報を感想付きで表示する")
+    usages.append(f"`@{botname} rm [登録番号]` : 指定した番号の登録情報を削除する")
+    message.send("\n".join(usages))
 
 
 @listen_to('送信しました')
