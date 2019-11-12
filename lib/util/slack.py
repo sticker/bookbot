@@ -37,3 +37,15 @@ class Slack:
                                             initial_comment=comment,
                                             thread_ts=thread_ts)
         return True
+
+    def send_message_with_link_names(self, message, channel, text, attachments=None, as_user=True, thread_ts=None):
+        message._client.webapi.chat.post_message(
+            channel,
+            text,
+            username=message._client.login_data['self']['name'],
+            icon_url=message._client.bot_icon,
+            icon_emoji=message._client.bot_emoji,
+            attachments=attachments,
+            as_user=as_user,
+            thread_ts=thread_ts,
+            link_names=True)

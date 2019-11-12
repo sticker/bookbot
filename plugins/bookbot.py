@@ -75,7 +75,8 @@ def delete_handler(message: Message, command, entry_no):
     logging.info(message.body)
 
     if message.body['channel'] != default_channel_id:
-        message.send(f"公式チャンネル #{slack.get_channel_name(message, channel_id=default_channel_id)} で実行してください！")
+        text = f"公式チャンネル #{slack.get_channel_name(message, channel_id=default_channel_id)} で実行してください！"
+        slack.send_message_with_link_names(message, message.body['channel'], text)
         return
 
     delete.specified_entry_no(message, entry_no)
