@@ -6,7 +6,9 @@ from lib.bookbot.impression import Impression
 from lib.bookbot.list_history import ListHistory
 from lib.bookbot.describe import Describe
 from lib.bookbot.delete import Delete
+from lib.util.slack import Slack
 
+import os
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
@@ -15,6 +17,9 @@ impression = Impression()
 list_history = ListHistory()
 describe = Describe()
 delete = Delete()
+slack = Slack()
+
+default_channel_name = os.getenv('DEFAULT_CHANNEL_NAME', 'test_hoshino')
 
 @respond_to('help')
 @listen_to('Can someone help me?')
@@ -68,6 +73,10 @@ def list_handler(message: Message, commmand, entry_no):
 @respond_to('(delete|del|rm|削除)\s*(\d*)')
 def delete_handler(message: Message, command, entry_no):
     logging.info(message.body)
+
+    if slack.get_channel_name(message) != default_channel_name:
+        message.send(f"公式チャンネル #{default_channel_name} で実行してください！")
+        return
 
     delete.specified_entry_no(message, entry_no)
 
