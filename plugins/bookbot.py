@@ -21,16 +21,21 @@ slack = Slack()
 
 default_channel_id = os.getenv('DEFAULT_CHANNEL_ID', 'CC6DENSDV')
 
+
 @respond_to('help')
-@listen_to('Can someone help me?')
 def help(message: Message):
     """
     ヘルプメッセージを表示する
     :param message:
     :return:
     """
-    usage = "`@bookbot help` : このメッセージを表示する\n"
-    message.reply(usage)
+    botname = "bookbot"
+    usages = list()
+    usages.append(f"`{botname} list` : 過去1年間の登録情報をリスト表示する")
+    usages.append(f"`{botname} list [検索文字]` : 題名・氏名・Slack名 で絞り込む（複数指定でAND検索）")
+    usages.append(f"`{botname} desc [登録番号]` : 指定した番号の登録情報を感想付きで表示する")
+    usages.append(f"`{botname} rm [登録番号]` : 指定した番号の登録情報を削除する")
+    message.reply("\n".join(usages))
 
 
 @listen_to('送信しました')
@@ -64,7 +69,7 @@ def list_handler(message: Message, search_words_str):
 
 
 @respond_to('(desc|describe|display|詳細)\s*(\d*)')
-def list_handler(message: Message, commmand, entry_no):
+def describe_handler(message: Message, commmand, entry_no):
     logging.info(message.body)
 
     describe.specified_entry_no(message, entry_no)

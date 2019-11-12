@@ -24,7 +24,9 @@ class Describe:
         text_list.append(self.converter.get_list_str(item))
 
         impression = item.get('impression')
-        if impression is not None:
+        if impression is not None or impression != '':
             text_list.append(f"```\n{impression}\n```")
+        else:
+            text_list.append("感想は登録されていません。")
 
         message.send("\n".join(text_list))
