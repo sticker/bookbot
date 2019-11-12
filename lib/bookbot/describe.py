@@ -13,6 +13,10 @@ class Describe:
 
     def specified_entry_no(self, message, entry_no):
         items = self.dynamodb.query_specified_key_value(self.dynamodb.default_table, 'entry_no', entry_no)
+        if len(items) == 0:
+            message.send("対象の登録データが見つかりません")
+            return
+
         # プライマリキー指定なので必ず1件取得
         item = items[0]
 

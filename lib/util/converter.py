@@ -8,15 +8,14 @@ class Converter:
     def to_hankaku(self, text: str):
         return text.translate(str.maketrans({chr(0xFF01 + i): chr(0x21 + i) for i in range(94)}))
 
-    def get_this_year_from_today(self):
-        today = datetime.today()
+    def get_this_year_from_today(self, today=datetime.today()):
         today_md = today.strftime('%m%d')
-        if int(today_md) <= int('0420'):
-            start = today.replace(year=today.year -1, month=4, day=21)
-            end = today.replace(month=4, day=20)
+        if int(today_md) < int('0401'):
+            start = today.replace(year=today.year -1, month=4, day=1)
         else:
-            start = today.replace(month=4, day=21)
-            end = today
+            start = today.replace(month=4, day=1)
+
+        end = today
 
         return start.strftime('%Y%m%d'), end.strftime('%Y%m%d')
 
