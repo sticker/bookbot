@@ -1,5 +1,3 @@
-import simplejson
-from decimal import Decimal
 from lib import get_logger
 from lib.aws.dynamodb import Dynamodb
 from lib.util.converter import Converter

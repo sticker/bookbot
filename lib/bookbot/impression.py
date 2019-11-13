@@ -1,8 +1,7 @@
-import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from slackbot.dispatcher import Message
-from lib import get_logger, app_home
+from lib import get_logger
 from lib.aws.dynamodb import Dynamodb
 from lib.util.converter import Converter
 from lib.util.slack import Slack
@@ -20,7 +19,6 @@ class Impression:
 
         entry_no = ''
         impression = ''
-        impression_time = ''
         for block in message.body['blocks']:
             if not ('text' in block and 'text' in block['text']):
                 continue
@@ -31,8 +29,8 @@ class Impression:
             elif '*感想*' in text:
                 impression = re.sub('\*感想\*\n', '', text).strip()
 
-        # 感想登録日
         self.logger.debug(f"impression={impression}")
+        # 感想登録日
         impression_time = now.strftime("%Y%m%d%H%M%S")
         self.logger.debug(f"impression_time={impression_time}")
 
@@ -64,9 +62,6 @@ class Impression:
             message.send(f"<@{slack_id}> 感想の登録に失敗しました...すいません！", thread_ts=ts)
             return False
 
-        # book_type = self.converter.get_book_type_str(item.get('book_type', '本'))
-        # entry_date_yyyymmdd = item.get('entry_time', '99999999')[0:8]
-        # entry_date = self.converter.get_date_str(entry_date_yyyymmdd)
         item['impression'] = impression
         reply_texts = [f"<!here> 以下の感想が登録されました！"]
         reply_texts.append(self.converter.get_list_str(item))

@@ -1,4 +1,3 @@
-import os
 import re
 import pdfkit
 from markdown import Markdown
@@ -7,6 +6,7 @@ from slackbot.dispatcher import Message
 from lib import get_logger, app_home
 from lib.aws.dynamodb import Dynamodb
 from lib.aws.s3 import S3
+from lib.util.amount import Amount
 from lib.util.converter import Converter
 from lib.util.validation import Validation
 from lib.util.slack import Slack
@@ -17,11 +17,10 @@ class Entry:
         self.logger = get_logger(__name__)
         self.dynamodb = Dynamodb()
         self.s3 = S3()
+        self.amount = Amount()
         self.converter = Converter()
         self.validation = Validation()
         self.slack = Slack()
-        # 年間上限金額
-        self.max_amount = 25000
 
     def save(self, message: Message):
 
@@ -68,17 +67,21 @@ class Entry:
         real_name = user_name[1]
 
         # そのユーザが年間上限金額以上立替していないか
-        (result, total_price_in_this_year) = self.check_max_amount_per_user(slack_name, book_price)
+        (result, total_price_in_this_year) = self.amount.check_max_amount(slack_name, book_price)
+        # 残り金額
+        remain_amount = self.amount.get_remain_amount(slack_name)
         if not result:
             self.logger.debug("年間立替金額上限を超えています")
-            message.send(f"<@{slack_id}> 年間立替金額上限を超えるため登録できません。", thread_ts=ts)
-
+            message.send(f"<@{slack_id}> 年間立替金額上限を超えるため登録できません。残り *{remain_amount}* 円 までならOKです。", thread_ts=ts)
             return
 
         # 受付番号
         # entry_no = now.strftime("%Y%m%d%H%M%S%f")[:-3]
         # アトミックカウンタでシーケンス番号を発行し文字列として取得する
         entry_no = str(self.dynamodb.atomic_counter('atomic-counter', 'entry_no'))
+
+        # パーマリンクを取得
+        permalink = self.slack.get_message_permalink(message)
 
         # 感想（空で登録）
         impression = ''
@@ -95,6 +98,7 @@ class Entry:
             'slack_id': slack_id,
             'slack_name': slack_name,
             'real_name': real_name,
+            'permalink': permalink,
             'impression': impression
         }
         self.logger.info(f"item={item}")
@@ -103,7 +107,7 @@ class Entry:
 
         reply_texts = [f"<@{slack_id}> 登録しました！登録番号: [{entry_no}]"]
         reply_texts.append(f"今年度立替金額合計: {total_price_in_this_year}円")
-        reply_texts.append(f"残り {self.max_amount - total_price_in_this_year}円 までOKです。")
+        reply_texts.append(f"残り {remain_amount}円 までOKです。")
 
         if book_price == '0':
             self.logger.info("0円のため承認PDFは作成しません")
@@ -113,13 +117,10 @@ class Entry:
         reply_texts.append('補助対象になりますので承認PDFを作成します。')
         message.send("\n".join(reply_texts), thread_ts=ts)
 
-        item['total_price_in_this_year'] = total_price_in_this_year
         # 承認内容のPDFを作成してSlackにアップ　バックアップでS3にアップ
-        # self.upload_approved(message, item)
-        # パーマリンクを取得
-        item['permalink'] = self.slack.get_message_permalink(message)
         # 保存先PDFファイルパス
-        save_pdf_path = f"{app_home}/file/{item['entry_no']}_{item['slack_name']}.pdf"
+        save_pdf_fname = f"{entry_no}_{entry_time}_{slack_name}.pdf"
+        save_pdf_path = f"{app_home}/file/{save_pdf_fname}.pdf"
         # 承認PDF作成
         if not self.make_approved_pdf(item, save_pdf_path):
             self.logger.warning('承認PDFの作成に失敗しました')
@@ -138,25 +139,6 @@ class Entry:
         this_year = self.converter.get_this_year_from_today()[0][0:4]  # 今年度のYYYY
         self.s3.upload_to_pdf(save_pdf_path, process_ym=this_year)
 
-    def check_max_amount_per_user(self, slack_name: str, book_price: str) -> tuple:
-        this_year_start, this_year_end = self.converter.get_this_year_from_today()
-
-        target_entry_time_start = this_year_start.ljust(14, '0')
-        target_entry_time_end = this_year_end.ljust(14, '9')
-        self.logger.debug(target_entry_time_start)
-        self.logger.debug(target_entry_time_end)
-
-        items = self.dynamodb.query_entry_time(slack_name, target_entry_time_start, target_entry_time_end)
-
-        total_price_in_this_year = sum(map(lambda x: int(x['book_price']), items))
-        self.logger.debug(f"対象ユーザ:{slack_name}, 今年度立替金額合計:{total_price_in_this_year}, 今回立替金額:{book_price}")
-
-        if total_price_in_this_year + int(book_price) >= self.max_amount:
-            self.logger.info(f"今年度の立替金額が{self.max_amount}円を超えてしまいます 対象ユーザ:{slack_name}, 今年度立替金額合計:{total_price_in_this_year}, 今回立替金額:{book_price}")
-            return (False, total_price_in_this_year)
-
-        return (True, total_price_in_this_year + int(book_price))
-
     def make_approved_html(self, item: dict) -> str:
         entry_date = "%s/%s/%s %s:%s:%s" % (item['entry_time'][0:4],
                                             item['entry_time'][4:6],
@@ -171,20 +153,20 @@ class Entry:
             book_type = ''
 
         md_text = f"""
-{entry_date} {item['real_name']}(@{item['slack_name']})
-<{item['permalink']}>
+## Bot承認証跡
 
-#### 対象書籍
+### Slack投稿
+* [{entry_date} {item['real_name']}(@{item['slack_name']})]({item['permalink']})
+
+### 対象書籍
 - [{item['book_name']}]({item['book_url']}){book_type}
 
-#### 購入目的
+### 購入目的
 - {item['purpose']}
 
-#### 立替金額
-- {item['book_price']} 円
-
-#### 今年度立替金額合計
-- {item['total_price_in_this_year']} 円
+### 立替金額
+- {item['book_price']} 円 （今回申請分）
+- {item['total_price_in_this_year']} 円 （今年度合計）
 """
         self.logger.debug(md_text)
 
@@ -192,7 +174,8 @@ class Entry:
         body = md.convert(md_text)
         self.logger.debug(body)
 
-        html = '<html lang="ja"><meta charset="utf-8"><body>'
+        html = '<html lang="ja"><head><meta charset="utf-8">'
+        html += '</head><body>'
         html += '<style> body { font-size: 3em; } </style>'
         html += body + '</body></html>'
 
