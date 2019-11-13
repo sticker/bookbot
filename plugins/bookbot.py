@@ -40,10 +40,10 @@ def workflow_handler(message: Message):
     username = message.body['username']
 
     # ワークフロー：書籍購入 からのメッセージに反応する
-    if username == '書籍購入':
+    if username == '書籍購入' or username == '書籍購入-test':
         Entry().save(message)
     # ワークフロー：感想登録 からのメッセージに反応する
-    elif username == '書籍購入後の感想登録':
+    elif username == '書籍購入後の感想登録' or username == '書籍購入後の感想登録-test':
         Impression().save(message)
     else:
         logging.debug("ワークフローからのメッセージでないため無視します")
