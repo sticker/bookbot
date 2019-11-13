@@ -19,6 +19,13 @@ class Converter:
 
         return start.strftime('%Y%m%d'), end.strftime('%Y%m%d')
 
+    def get_target_year_start_end(self, target_yyyy: str):
+        target_year = datetime.strptime(target_yyyy, '%Y')
+        start = target_year.replace(month=4, day=1)
+        end = target_year.replace(year=target_year.year +1, month=3, day=31)
+
+        return start.strftime('%Y%m%d'), end.strftime('%Y%m%d')
+
     def get_date_str(self, yyyymmdd):
         date_str = f"{yyyymmdd[0:4]}-{yyyymmdd[4:6]}-{yyyymmdd[6:8]}"
         return date_str

@@ -18,6 +18,20 @@ class Amount:
         # 年間上限金額
         self.max_amount = int(os.getenv("MAX_AMOUNT", 10000))
 
+    def get_all_total_price_in_year(self, target_yyyy=None) -> int:
+        this_year_start, this_year_end = self.converter.get_target_year_start_end(target_yyyy)
+
+        target_entry_time_start = this_year_start.ljust(14, '0')
+        target_entry_time_end = this_year_end.ljust(14, '9')
+        self.logger.debug(target_entry_time_start)
+        self.logger.debug(target_entry_time_end)
+
+        items = self.dynamodb.scan_entry_time(target_entry_time_start, target_entry_time_end)
+
+        all_total_price_in_year = sum(map(lambda x: int(x['book_price']), items))
+
+        return all_total_price_in_year
+
     def get_total_price_in_this_year(self, slack_name: str) -> int:
         this_year_start, this_year_end = self.converter.get_this_year_from_today()
 

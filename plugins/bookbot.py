@@ -29,6 +29,7 @@ def help(message: Message):
     usages.append(f"`@{botname} list [検索文字]` : 過去全件から *題名* ・ *氏名* ・*Slack名* で検索（複数指定でAND検索）")
     usages.append(f"`@{botname} desc [登録番号]` : 指定した番号の登録情報を感想付きで表示する  alias: `describe` `display` `詳細`")
     usages.append(f"`@{botname} total` : 自分の今年度の立替金合計を表示する alias: `合計`")
+    usages.append(f"`@{botname} total all [年度(YYYY)]` : 指定年度のすべての立替金合計を表示する alias: `合計 全て`")
     usages.append(f"`@{botname} rm [登録番号]` : 指定した番号の登録情報を削除する alias: `del` `delete` `削除`")
     message.send("\n".join(usages))
 
@@ -90,8 +91,13 @@ def delete_handler(message: Message, command, entry_no):
 
     Delete().specified_entry_no(message, entry_no)
 
-@respond_to('(total|合計)\s*')
-def total_handler(message: Message, command):
+@respond_to('(total|合計)\s*(\S*)\s*(\d*)')
+def total_handler(message: Message, command, option, target_yyyy):
     logging.info(message.body)
-
-    Total().default(message)
+    logging.info(f"command={command}")
+    logging.info(f"option={option}")
+    logging.info(f"target_yyyy={target_yyyy}")
+    if 'all' in option or '全て' in option:
+        Total().all_total_price_in_year(message, target_yyyy)
+    else:
+        Total().default(message)

@@ -1,5 +1,6 @@
 from lib import get_logger
 from lib.util.amount import Amount
+from lib.util.converter import Converter
 from lib.util.slack import Slack
 
 
@@ -7,6 +8,7 @@ class Total:
     def __init__(self):
         self.logger = get_logger(__name__)
         self.amount = Amount()
+        self.converter = Converter()
         self.slack = Slack()
 
     def default(self, message):
@@ -22,5 +24,19 @@ class Total:
         text_list = list()
         text_list.append(f"<@{slack_id}> 今年度の立替金合計は *{total_price_in_this_year}* 円 です。")
         text_list.append(f"残り *{remain_amount}* 円 までならOKです。")
+
+        message.send("\n".join(text_list))
+
+    def all_total_price_in_year(self, message, target_yyyy):
+        text_list = list()
+        self.logger.debug(len(target_yyyy))
+        if len(target_yyyy) == 4:
+            all_total_price_in_year = self.amount.get_all_total_price_in_year(target_yyyy)
+            text_list.append(f"{target_yyyy}年度のすべての立替金合計は *{all_total_price_in_year}* 円 です。")
+        else:
+            this_year_start, this_year_end = self.converter.get_this_year_from_today()
+            target_yyyy = this_year_start[0:4]
+            all_total_price_in_year = self.amount.get_all_total_price_in_year(target_yyyy)
+            text_list.append(f"今年度のすべての立替金合計は *{all_total_price_in_year}* 円 です。")
 
         message.send("\n".join(text_list))
