@@ -32,18 +32,20 @@ class Amount:
 
         return total_price_in_this_year
 
-    def check_max_amount(self, slack_name: str, book_price: str) -> tuple:
-        total_price_in_this_year = self.get_total_price_in_this_year(slack_name)
+    def check_max_amount(self, slack_name: str, book_price: str, total_price_in_this_year=None) -> bool:
+        if total_price_in_this_year is None:
+            total_price_in_this_year = self.get_total_price_in_this_year(slack_name)
 
         if total_price_in_this_year + int(book_price) > self.max_amount:
             self.logger.info(f"今年度の立替金額が{self.max_amount}円を超えてしまいます 対象ユーザ:{slack_name}, 今年度立替金額合計:{total_price_in_this_year}, 今回立替金額:{book_price}")
-            return (False, total_price_in_this_year)
+            return False
 
         self.logger.debug(f"対象ユーザ:{slack_name}, 今年度立替金額合計:{total_price_in_this_year}, 今回立替金額:{book_price}")
-        return (True, total_price_in_this_year + int(book_price))
+        return True
 
-    def get_remain_amount(self, slack_name: str) -> int:
-        total_price_in_this_year = self.get_total_price_in_this_year(slack_name)
+    def get_remain_amount(self, slack_name: str, total_price_in_this_year=None) -> int:
+        if total_price_in_this_year is None:
+            total_price_in_this_year = self.get_total_price_in_this_year(slack_name)
 
         remain_amount = self.max_amount - total_price_in_this_year
 

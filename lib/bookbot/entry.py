@@ -66,10 +66,12 @@ class Entry:
         slack_name = user_name[0]
         real_name = user_name[1]
 
+        # 今年度の合計立替金額を取得
+        total_price_in_this_year = self.amount.get_total_price_in_this_year(slack_name)
         # そのユーザが年間上限金額以上立替していないか
-        (result, total_price_in_this_year) = self.amount.check_max_amount(slack_name, book_price)
-        # 残り金額
-        remain_amount = self.amount.get_remain_amount(slack_name)
+        result = self.amount.check_max_amount(slack_name, book_price, total_price_in_this_year)
+        # 今回申請分を登録する前の 残り金額
+        remain_amount = self.amount.get_remain_amount(slack_name, total_price_in_this_year)
         if not result:
             self.logger.debug("年間立替金額上限を超えています")
             message.send(f"<@{slack_id}> 年間立替金額上限を超えるため登録できません。残り *{remain_amount}* 円 までならOKです。", thread_ts=ts)
@@ -78,6 +80,11 @@ class Entry:
         # 受付番号
         # アトミックカウンタでシーケンス番号を発行し文字列として取得する
         entry_no = str(self.dynamodb.atomic_counter('atomic-counter', 'entry_no'))
+
+        # 今年度の合計立替金額に今回申請分を足す
+        total_price_in_this_year += int(book_price)
+        # 今回申請分を登録した後の 残り金額
+        remain_amount = self.amount.get_remain_amount(slack_name, total_price_in_this_year)
 
         # パーマリンクを取得
         permalink = self.slack.get_message_permalink(message)
