@@ -8,9 +8,12 @@ class Slack:
     def __init__(self):
         self.logger = get_logger(__name__)
 
-    def get_slack_id(self, text: str) -> str:
+    def get_slack_id_from_workflow(self, text: str) -> str:
         slack_id = re.findall('<@(.*)>さん', text)
         return slack_id[0]
+
+    def get_slack_id(self, message: Message) -> str:
+        return message.body['user']
 
     def get_user_name(self, slack_id: str, message: Message) -> tuple:
         user = message._client.get_user(slack_id)

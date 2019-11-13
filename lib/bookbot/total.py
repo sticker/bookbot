@@ -11,7 +11,7 @@ class Total:
 
     def default(self, message):
         # 申請者 Slack ID
-        slack_id = self.slack.get_slack_id(message.body['text'])
+        slack_id = self.slack.get_slack_id(message)
         # 申請者名
         user_name = self.slack.get_user_name(slack_id, message)
         slack_name = user_name[0]
