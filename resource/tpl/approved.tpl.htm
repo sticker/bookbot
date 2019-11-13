@@ -1,0 +1,30 @@
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="file:///{{ app_home }}/resource/css/style.css">
+</head>
+<body>
+<h1><img src="file:///{{ app_home }}/resource/img/book_bot.jpg" width="50" height="50"> Bot承認証跡</h1>
+<h2>Slack投稿</h2>
+<ul>
+    <li><a href="{{ permalink }}">{{ entry_date }} {{ real_name }}(@{{ slack_name }})</a></li>
+</ul>
+<h2>対象書籍</h2>
+<ul>
+    <li><a href="{{ book_url }}">{{ book_name }}</a>{{ book_type }}</li>
+</ul>
+<h2>購入目的</h2>
+<ul>
+    <li>{{ purpose }}</li>
+</ul>
+<h2>立替金額（今回申請分）</h2>
+<ul>
+    <li>{{ book_price }} 円 </li>
+</ul>
+<h2>今年度合計 立替金額（今回申請分を含む）</h2>
+<ul>
+    <li>{{ total_price_in_this_year }} 円</li>
+    <li>（残り {{ remain_amount }} 円 まで立替可能）</li>
+</ul>
+</body>
+</html>

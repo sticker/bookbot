@@ -1,6 +1,4 @@
 import re
-import pdfkit
-from markdown import Markdown
 from datetime import datetime
 from slackbot.dispatcher import Message
 from lib import get_logger, app_home
@@ -10,6 +8,7 @@ from lib.util.amount import Amount
 from lib.util.converter import Converter
 from lib.util.validation import Validation
 from lib.util.slack import Slack
+from lib.util.pdf import Pdf
 
 
 class Entry:
@@ -21,6 +20,7 @@ class Entry:
         self.converter = Converter()
         self.validation = Validation()
         self.slack = Slack()
+        self.pdf = Pdf()
 
     def save(self, message: Message):
 
@@ -92,6 +92,7 @@ class Entry:
             'book_type': book_type,
             'book_price': book_price,
             'total_price_in_this_year': total_price_in_this_year,
+            'remain_amount': remain_amount,
             'book_url': book_url,
             'purpose': purpose,
             'entry_time': entry_time,
@@ -120,9 +121,9 @@ class Entry:
         # 承認内容のPDFを作成してSlackにアップ　バックアップでS3にアップ
         # 保存先PDFファイルパス
         save_pdf_fname = f"{entry_no}_{entry_time}_{slack_name}.pdf"
-        save_pdf_path = f"{app_home}/file/{save_pdf_fname}.pdf"
+        save_pdf_path = f"{app_home}/output_pdf/{save_pdf_fname}"
         # 承認PDF作成
-        if not self.make_approved_pdf(item, save_pdf_path):
+        if not self.pdf.make_approved_pdf(item, save_pdf_path):
             self.logger.warning('承認PDFの作成に失敗しました')
             message.send(f"<@{item['slack_id']}> 承認PDFの作成に失敗しました...すいません！")
             return False
@@ -138,61 +139,4 @@ class Entry:
         # S3にもアップロード
         this_year = self.converter.get_this_year_from_today()[0][0:4]  # 今年度のYYYY
         self.s3.upload_to_pdf(save_pdf_path, process_ym=this_year)
-
-    def make_approved_html(self, item: dict) -> str:
-        entry_date = "%s/%s/%s %s:%s:%s" % (item['entry_time'][0:4],
-                                            item['entry_time'][4:6],
-                                            item['entry_time'][6:8],
-                                            item['entry_time'][8:10],
-                                            item['entry_time'][10:12],
-                                            item['entry_time'][12:14])
-        book_type = item.get('book_type', '本')
-        if book_type != '本':
-            book_type = f'({book_type})'
-        else:
-            book_type = ''
-
-        md_text = f"""
-## Bot承認証跡
-
-### Slack投稿
-* [{entry_date} {item['real_name']}(@{item['slack_name']})]({item['permalink']})
-
-### 対象書籍
-- [{item['book_name']}]({item['book_url']}){book_type}
-
-### 購入目的
-- {item['purpose']}
-
-### 立替金額
-- {item['book_price']} 円 （今回申請分）
-- {item['total_price_in_this_year']} 円 （今年度合計）
-"""
-        self.logger.debug(md_text)
-
-        md = Markdown()
-        body = md.convert(md_text)
-        self.logger.debug(body)
-
-        html = '<html lang="ja"><head><meta charset="utf-8">'
-        html += '</head><body>'
-        html += '<style> body { font-size: 3em; } </style>'
-        html += body + '</body></html>'
-
-        return html
-
-    def make_approved_pdf(self, item: dict, save_path: str):
-
-        html = self.make_approved_html(item)
-
-        # PDFファイルを保存
-        try:
-            pdfkit.from_string(html, save_path)
-        except:
-            import traceback
-            traceback.print_exc()
-            return False
-
-        return save_path
-
 

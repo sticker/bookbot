@@ -4,11 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-slackbot = "*"
-"boto3" = "*"
-markdown = "*"
-pdfkit = "*"
-simplejson = "*"
+slackbot = "==0.5.4"
+"boto3" = "==1.10.16"
+pdfkit = "==0.6.1"
+"jinja2" = "==2.10.3"
 
 [dev-packages]
 pytest = "*"
