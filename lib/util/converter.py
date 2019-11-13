@@ -42,4 +42,4 @@ class Converter:
         if impression != '':
             has_impression = ":memo:"
 
-        return f"[{entry_no}] <{book_url}|{book_name}>{book_type} at {entry_date} by {real_name}{has_impression}"
+        return f"*[{entry_no}]* <{book_url}|{book_name}>{book_type} at {entry_date} by {real_name}{has_impression}"

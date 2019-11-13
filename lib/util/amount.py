@@ -16,7 +16,7 @@ class Amount:
         self.validation = Validation()
         self.slack = Slack()
         # 年間上限金額
-        self.max_amount = int(os.getenv("MAX_AMOUNT", 25000))
+        self.max_amount = int(os.getenv("MAX_AMOUNT", 10000))
 
     def get_total_price_in_this_year(self, slack_name: str) -> int:
         this_year_start, this_year_end = self.converter.get_this_year_from_today()
@@ -35,7 +35,7 @@ class Amount:
     def check_max_amount(self, slack_name: str, book_price: str) -> tuple:
         total_price_in_this_year = self.get_total_price_in_this_year(slack_name)
 
-        if total_price_in_this_year + int(book_price) >= self.max_amount:
+        if total_price_in_this_year + int(book_price) > self.max_amount:
             self.logger.info(f"今年度の立替金額が{self.max_amount}円を超えてしまいます 対象ユーザ:{slack_name}, 今年度立替金額合計:{total_price_in_this_year}, 今回立替金額:{book_price}")
             return (False, total_price_in_this_year)
 
@@ -46,5 +46,9 @@ class Amount:
         total_price_in_this_year = self.get_total_price_in_this_year(slack_name)
 
         remain_amount = self.max_amount - total_price_in_this_year
+
+        # もしマイナスになったら0にしておく
+        if remain_amount < 0:
+            remain_amount = 0
 
         return remain_amount

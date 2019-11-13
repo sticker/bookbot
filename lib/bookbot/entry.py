@@ -76,7 +76,6 @@ class Entry:
             return
 
         # 受付番号
-        # entry_no = now.strftime("%Y%m%d%H%M%S%f")[:-3]
         # アトミックカウンタでシーケンス番号を発行し文字列として取得する
         entry_no = str(self.dynamodb.atomic_counter('atomic-counter', 'entry_no'))
 
@@ -106,9 +105,10 @@ class Entry:
 
         self.dynamodb.insert(self.dynamodb.default_table, item)
 
-        reply_texts = [f"<@{slack_id}> 登録しました！登録番号: [{entry_no}]"]
-        reply_texts.append(f"今年度立替金額合計: {total_price_in_this_year}円")
-        reply_texts.append(f"残り {remain_amount}円 までOKです。")
+        reply_texts = [f"<@{slack_id}> 登録しました！"]
+        reply_texts.append(f"登録番号: *[{entry_no}]*")
+        reply_texts.append(f"今年度立替金額合計: *{total_price_in_this_year}* 円")
+        reply_texts.append(f"残り *{remain_amount}* 円 までOKです。")
 
         if book_price == '0':
             self.logger.info("0円のため承認PDFは作成しません")
