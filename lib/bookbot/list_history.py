@@ -8,9 +8,10 @@ class ListHistory:
         self.logger = get_logger(__name__)
         self.dynamodb = Dynamodb()
         self.converter = Converter()
+        self.default_record_num = 20
 
     def default(self, message):
-        items = self.dynamodb.find(self.dynamodb.default_table)
+        items = self.dynamodb.find(self.dynamodb.default_table, self.default_record_num)
         self.logger.info(items)
 
         if len(items) == 0:

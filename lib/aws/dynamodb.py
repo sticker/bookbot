@@ -68,7 +68,7 @@ class Dynamodb(object):
         self.logger.log(INFO, "%s のレコードをすべて削除しました" % target)
         return 0
 
-    def find(self, target):
+    def find_all(self, target):
         table = self.resource.Table(target)
         convert_items = []
         ExclusiveStartKey = None
@@ -81,6 +81,29 @@ class Dynamodb(object):
             items = response["Items"]
             for item in items:
                 convert_items.append(self.none_to_emptystr(item))
+            if ("LastEvaluatedKey" in response) is True:
+                ExclusiveStartKey = response["LastEvaluatedKey"]
+            else:
+                break
+
+        return convert_items
+
+    def find(self, target: str, record_num: int):
+        table = self.resource.Table(target)
+        convert_items = []
+        ExclusiveStartKey = None
+        while True:
+            if ExclusiveStartKey is None:
+                response = self.request_within_capacity(table, "scan()")
+            else:
+                response = self.request_within_capacity(table, "scan(ExclusiveStartKey=param)", ExclusiveStartKey)
+
+            items = response["Items"]
+            for item in items:
+                convert_items.append(self.none_to_emptystr(item))
+                if len(convert_items) >= record_num:
+                    break
+
             if ("LastEvaluatedKey" in response) is True:
                 ExclusiveStartKey = response["LastEvaluatedKey"]
             else:
