@@ -19,12 +19,13 @@ class Describe:
 
         # プライマリキー指定なので必ず1件取得
         item = items[0]
+        self.logger.debug(item)
 
         text_list = list()
         text_list.append(self.converter.get_list_str(item))
 
         impression = item.get('impression')
-        if impression is not None or impression != '':
+        if impression != '':
             text_list.append(f"```\n{impression}\n```")
         else:
             text_list.append("感想は登録されていません。")
