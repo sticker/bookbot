@@ -114,8 +114,11 @@ class Entry:
 
         reply_texts = [f"<@{slack_id}> 登録しました！"]
         reply_texts.append(f"登録番号: *[{entry_no}]*")
-        reply_texts.append(f"今年度立替金額合計: *{total_price_in_this_year}* 円")
-        reply_texts.append(f"残り *{remain_amount}* 円 までOKです。")
+        reply_texts.append(f"今年度の立替金額合計が *{total_price_in_this_year}* 円になりました。")
+        if remain_amount == 0:
+            reply_texts.append(f"上限金額は *{self.amount.max_amount}* 円です。今年度はこれが最後の立替になります。")
+        else:
+            reply_texts.append(f"残り *{remain_amount}* 円 までならOKです。")
 
         if book_price == '0':
             self.logger.info("0円のため承認PDFは作成しません")

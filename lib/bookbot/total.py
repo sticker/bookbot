@@ -23,7 +23,10 @@ class Total:
 
         text_list = list()
         text_list.append(f"<@{slack_id}> 今年度の立替金合計は *{total_price_in_this_year}* 円 です。")
-        text_list.append(f"残り *{remain_amount}* 円 までならOKです。")
+        if remain_amount == 0:
+            text_list.append(f"上限金額は *{self.amount.max_amount}* 円です。今年度はこれ以上立替できません。")
+        else:
+            text_list.append(f"残り *{remain_amount}* 円 までならOKです。")
 
         message.send("\n".join(text_list))
 
