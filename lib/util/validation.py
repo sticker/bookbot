@@ -28,12 +28,12 @@ class Validation:
 
     def __validate_book_price(self, book_price: str, message: Message) -> bool:
         """
-        金額のバリデーション
-        :param book_price: 金額
+        立替金額のバリデーション
+        :param book_price: 立替金額
         :return:
         """
         if not book_price.isdecimal():
-            message.reply("金額は数字で入力してください")
+            message.send("立替金額は数字で入力してください", thread_ts=message.body['ts'])
             return False
 
         return True
