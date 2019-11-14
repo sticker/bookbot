@@ -153,5 +153,5 @@ class Entry:
 
         # S3にもアップロード
         this_year = self.converter.get_this_year_from_today()[0][0:4]  # 今年度のYYYY
-        self.s3.upload_to_pdf(save_pdf_path, process_ym=this_year)
+        self.s3.upload_to_pdf(save_pdf_path, process_yyyy=this_year)
 

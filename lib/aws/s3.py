@@ -20,7 +20,7 @@ class S3(object):
         self.logger.log(DEBUG, "upload: path_s3=" + path_s3 + " path_local=" + path_local)
         s3.Bucket(bucket_name).upload_file(path_local, path_s3)
 
-    def upload_to_pdf(self, path_local: str, process_ym=None):
+    def upload_to_pdf(self, path_local: str, process_yyyy=None):
         self.upload(bucket_name=self.S3_BUCKET_PDF,
                     path_local=path_local,
-                    path_s3=process_ym + "/" + os.path.basename(path_local))
+                    path_s3=process_yyyy + "/" + os.path.basename(path_local))

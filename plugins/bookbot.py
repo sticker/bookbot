@@ -11,8 +11,8 @@ from lib.bookbot.delete import Delete
 from lib.util.slack import Slack
 
 import os
+import schedule
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
 default_channel_id = os.getenv('DEFAULT_CHANNEL_ID', 'CC6DENSDV')
 

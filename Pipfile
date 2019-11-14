@@ -8,6 +8,7 @@ slackbot = "==0.5.4"
 "boto3" = "==1.10.16"
 pdfkit = "==0.6.1"
 "jinja2" = "==2.10.3"
+schedule = "==0.6.0"
 
 [dev-packages]
 pytest = "*"
