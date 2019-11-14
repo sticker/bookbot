@@ -1,4 +1,4 @@
-version: 0.2
+version: 1.0
 
 phases:
   install:
@@ -12,6 +12,17 @@ phases:
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
   build:
     commands:
+      - |
+        if [ "X$BUILD_PLATFORM" = "X1" ]; then
+          echo Platform Build started on `date`
+          echo Platform Building the Docker image...
+          REPOSITORY_URI_PLATFORM=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_NAME}-platform
+          docker build -t $REPOSITORY_URI_PLATFORM:latest -f Dockerfile.platform
+          docker tag $REPOSITORY_URI_PLATFORM:latest $REPOSITORY_URI_PLATFORM:$IMAGE_TAG
+          echo Pushing the Docker image for Platform...
+          docker push $REPOSITORY_URI_PLATFORM:latest
+          docker push $REPOSITORY_URI_PLATFORM:$IMAGE_TAG
+        fi
       - echo Build started on `date`
       - echo Building the Docker image...
       - docker build -t $REPOSITORY_URI:latest .
@@ -19,10 +30,14 @@ phases:
   post_build:
     commands:
       - echo Build completed on `date`
-      - echo Pushing the Docker image...
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo Writing image definitions file...
       - echo "[{\"name\":\"${IMAGE_NAME}\",\"imageUri\":\"${REPOSITORY_URI}:${IMAGE_TAG}\"}]" > imagedefinitions.json
+      - |
+        if [ "X$ECS_SERVICE_NAME != "X" ]; then
+          echo ECS Service Update started on `date`
+          aws ecs update-service --cluster ${ECS_CLUSTER_NAME} --service ${ECS_SERVICE_NAME} --force-new-deployment
+        fi
 artifacts:
   files: imagedefinitions.json
