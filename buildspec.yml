@@ -25,10 +25,11 @@ phases:
         fi
       - echo Build started on `date`
       - echo Building the Docker image...
-      - docker build -t $REPOSITORY_URI:latest \
-          --build-arg AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID \
-          --build-arg AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
-          --build-arg IMAGE_NAME_PLATFORM=$IMAGE_NAME_PLATFORM .
+      - |
+        docker build -t $REPOSITORY_URI:latest \
+                     --build-arg AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID \
+                     --build-arg AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
+                     --build-arg IMAGE_NAME_PLATFORM=$IMAGE_NAME_PLATFORM .
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
