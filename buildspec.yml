@@ -39,7 +39,7 @@ phases:
       - echo Writing image definitions file...
       - echo "[{\"name\":\"${IMAGE_NAME}\",\"imageUri\":\"${REPOSITORY_URI}:${IMAGE_TAG}\"}]" > imagedefinitions.json
       - |
-        if [ "X$ECS_SERVICE_NAME != "X" ]; then
+        if [ "X$ECS_SERVICE_NAME" != "X" ]; then
           echo ECS Service Update started on `date`
           aws ecs update-service --cluster ${ECS_CLUSTER_NAME} --service ${ECS_SERVICE_NAME} --force-new-deployment
         fi
