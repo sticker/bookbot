@@ -1,6 +1,7 @@
 from slackbot.bot import listen_to
 from slackbot.bot import respond_to
 from slackbot.dispatcher import Message
+from lib.bookbot.help import Help
 from lib.bookbot.entry import Entry
 from lib.bookbot.impression import Impression
 from lib.bookbot.list_history import ListHistory
@@ -18,20 +19,9 @@ default_channel_id = os.getenv('DEFAULT_CHANNEL_ID', 'CC6DENSDV')
 
 @respond_to('help')
 def help(message: Message):
-    """
-    ヘルプメッセージを表示する
-    :param message:
-    :return:
-    """
-    botname = "bookbot"
-    usages = list()
-    usages.append(f"`@{botname} list` : 直近20件の登録情報をリスト表示する")
-    usages.append(f"`@{botname} list [検索文字]` : 過去全件から *題名* ・ *氏名* ・*Slack名* で検索（複数指定でAND検索）")
-    usages.append(f"`@{botname} desc [登録番号]` : 指定した番号の登録情報を感想付きで表示する  alias: `describe` `display` `詳細`")
-    usages.append(f"`@{botname} total` : 自分の今年度の立替金合計を表示する alias: `合計`")
-    usages.append(f"`@{botname} total all [年度(YYYY)]` : 指定年度のすべての立替金合計を表示する alias: `合計 全て`")
-    usages.append(f"`@{botname} rm [登録番号]` : 指定した番号の登録情報を削除する alias: `del` `delete` `削除`")
-    message.send("\n".join(usages))
+    logging.info(message.body)
+
+    Help().default(message)
 
 
 @listen_to('送信しました')
@@ -64,7 +54,7 @@ def list_handler(message: Message, search_words_str):
         ListHistory().search(message, search_words)
 
 
-@respond_to('(desc|describe|display|詳細)\s*(\d*)')
+@respond_to('(desc|describe|display|detail|詳細)\s*(\d*)')
 def describe_handler(message: Message, command, entry_no):
     logging.info(message.body)
 
