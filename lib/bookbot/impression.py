@@ -50,7 +50,7 @@ class Impression:
         # プライマリキー指定なので必ず1件取得
         item = items[0]
 
-        if item['real_name'] != real_name:
+        if item['slack_id'] != slack_id:
             message.send(f"<@{slack_id}> 購入者本人以外は感想登録できません！", thread_ts=ts)
             return False
 
