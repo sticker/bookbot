@@ -46,3 +46,18 @@ class Validation:
         :return:
         """
         return True
+
+    def validate_impression(self, **kwargs):
+        check_ok = True
+        # 各パラメータのバリデーションを呼び出す
+        if not self.__validate_entry_no(kwargs['entry_no'], kwargs['message']):
+            check_ok = False
+
+        return check_ok
+
+    def __validate_entry_no(self, entry_no: str, message: Message) -> bool:
+        if not entry_no.isdecimal():
+            message.send("登録番号は数字で入力してください", thread_ts=message.body['ts'])
+            return False
+
+        return True

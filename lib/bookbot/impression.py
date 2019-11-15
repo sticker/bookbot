@@ -4,6 +4,7 @@ from slackbot.dispatcher import Message
 from lib import get_logger
 from lib.aws.dynamodb import Dynamodb
 from lib.util.converter import Converter
+from lib.util.validation import Validation
 from lib.util.slack import Slack
 
 
@@ -12,6 +13,7 @@ class Impression:
         self.logger = get_logger(__name__)
         self.dynamodb = Dynamodb()
         self.converter = Converter()
+        self.validation = Validation()
         self.slack = Slack()
 
     def save(self, message: Message):
@@ -33,6 +35,11 @@ class Impression:
 
         # 投稿タイムスタンプ（スレッド投稿のため）
         ts = message.body['ts']
+
+        # パラメータチェック
+        if not self.validation.validate_impression(entry_no=entry_no, message=message):
+            self.logger.debug("パラメータチェックNG")
+            return
 
         # 申請者 Slack ID
         slack_id = self.slack.get_slack_id_from_workflow(message.body['text'])
