@@ -2,6 +2,7 @@ import logging
 import schedule
 import threading
 import time
+from slackbot import settings
 from slackbot.bot import Bot
 from lib.reminder.reminder import Reminder
 
@@ -18,7 +19,7 @@ def main():
 
 
 def reminder_schedule():
-    reminder_time = "16:50"
+    reminder_time = settings.IMPRESSION_REMINDER_TIME
     schedule.every().day.at(reminder_time).do(reminder.remind_impression)
     while True:
         schedule.run_pending()

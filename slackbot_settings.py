@@ -12,3 +12,7 @@ PLUGINS = ['plugins']
 
 # 公式チャンネルID
 DEFAULT_CHANNEL_ID = os.getenv('DEFAULT_CHANNEL_ID', 'CC6DENSDV')
+
+# 感想登録リマインダの通知時間
+# IMPRESSION_REMINDER_TIME = "11:00"
+IMPRESSION_REMINDER_TIME = "17:10"
