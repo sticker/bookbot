@@ -96,6 +96,7 @@ class Entry:
 
         # 感想（空で登録）
         impression = ''
+        impression_flag = '0'  # 0:登録無し
 
         item = {
             'entry_no': entry_no,
@@ -111,7 +112,8 @@ class Entry:
             'slack_name': slack_name,
             'real_name': real_name,
             'permalink': permalink,
-            'impression': impression
+            'impression': impression,
+            'impression_flag': impression_flag
         }
         self.logger.info(f"item={item}")
 

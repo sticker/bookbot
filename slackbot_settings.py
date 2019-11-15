@@ -9,3 +9,6 @@ DEFAULT_REPLY = "意味がわかりませんよ！helpでコマンドを確認�
 
 # プラグインスクリプトを置いてあるサブディレクトリ名のリスト
 PLUGINS = ['plugins']
+
+# 公式チャンネルID
+DEFAULT_CHANNEL_ID = os.getenv('DEFAULT_CHANNEL_ID', 'CC6DENSDV')

@@ -170,6 +170,22 @@ class Dynamodb(object):
 
         return self.request(self.default_table, method_str, kce)
 
+    def query_impression_flag_and_entry_time(self, target_impression_flag, target_entry_time_yyyymmdd=None):
+        indexname = 'impression_flag-entry_time-index'
+        indexname_param = f", IndexName='{indexname}'"
+
+        scan_index_forward = True
+
+        kce = Key('impression_flag').eq(target_impression_flag)
+        if target_entry_time_yyyymmdd is not None:
+            kce = kce & Key('entry_time').begins_with(target_entry_time_yyyymmdd)
+        self.logger.debug(kce)
+
+        method_str = f"query(KeyConditionExpression=param, ScanIndexForward={scan_index_forward}{indexname_param}"
+        self.logger.debug(method_str)
+
+        return self.request(self.default_table, method_str, kce)
+
     def scan_entry_time(self, target_entry_time_start=None, target_entry_time_end=None):
         fe = Key('entry_time').between(target_entry_time_start, target_entry_time_end)
         method_str = f"scan(FilterExpression=param"
@@ -205,12 +221,13 @@ class Dynamodb(object):
 
         return self.request(self.default_table, method_str, fe)
 
-    def update_bookbot_entry_impression(self, entry_no, impression, impression_time):
+    def update_bookbot_entry_impression(self, entry_no, impression, impression_time, impression_flag):
         """
         テーブル[bookbot-entry]のimpression, imporession_timeを更新する
         :param entry_no:読み込み条件[プライマリパーテンションキー]
         :param impression: 更新後のimpressionの値
         :param impression_time:更新後のimpression_timeの値
+        :param impression_flag: 更新後のimpression_flagの値
         :return:
         """
         table = self.resource.Table(self.default_table)
@@ -219,7 +236,7 @@ class Dynamodb(object):
                 Key={{\
                     "entry_no": "{entry_no}"\
                 }},\
-                UpdateExpression="set impression=:impression, impression_time=:impression_time",\
+                UpdateExpression="set impression=:impression, impression_time=:impression_time, impression_flag=:impression_flag",\
                 ExpressionAttributeValues=param,\
                 ReturnValues="UPDATED_NEW"\
             )'
@@ -227,6 +244,7 @@ class Dynamodb(object):
             param = dict()
             param[':impression'] = impression
             param[':impression_time'] = impression_time
+            param[':impression_flag'] = impression_flag
 
             self.logger.debug(f"method_str={method_str}")
             response = self.request_within_capacity(table, method_str, param)

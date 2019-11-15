@@ -3,10 +3,13 @@ import schedule
 import threading
 import time
 from slackbot.bot import Bot
+from lib.reminder.reminder import Reminder
 
 logging.basicConfig(level=logging.DEBUG,
                     format='[%(levelname)s] (%(threadName)-10s) {%(filename)s:%(lineno)d} %(message)s',
                     )
+
+reminder = Reminder()
 
 
 def main():
@@ -14,16 +17,9 @@ def main():
     bot.run()
 
 
-def remind_impression():
-    logging.info("remind!")
-
-
-def remind_impression_minutes():
-    logging.info("remind minutes!")
-
-
-def reminder():
-    schedule.every().day.at("23:49").do(remind_impression)
+def reminder_schedule():
+    reminder_time = "16:50"
+    schedule.every().day.at(reminder_time).do(reminder.remind_impression)
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -31,8 +27,9 @@ def reminder():
 
 if __name__ == "__main__":
     print('start reminder')
-    remind_thread = threading.Thread(target=reminder)
+    remind_thread = threading.Thread(target=reminder_schedule)
     remind_thread.start()
+
     print('start slackbot')
     main()
 
