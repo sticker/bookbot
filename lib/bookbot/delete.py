@@ -28,6 +28,11 @@ class Delete:
             message.reply("削除できるのは自分の登録情報だけです！")
             return
 
+        # 感想登録されていたら削除不可とする
+        if item['impression_flag'] == '1':
+            message.reply("感想登録後は削除できません！")
+            return
+
         # レコード削除
         key = dict()
         key['entry_no'] = entry_no
