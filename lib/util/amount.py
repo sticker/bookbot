@@ -1,4 +1,5 @@
 import os
+from slackbot import settings
 from lib import get_logger
 from lib.aws.dynamodb import Dynamodb
 from lib.aws.s3 import S3
@@ -16,7 +17,7 @@ class Amount:
         self.validation = Validation()
         self.slack = Slack()
         # 年間上限金額
-        self.max_amount = int(os.getenv("MAX_AMOUNT", 10000))
+        self.max_amount = int(settings.MAX_AMOUNT)
 
     def get_all_total_price_in_year(self, target_yyyy=None) -> int:
         this_year_start, this_year_end = self.converter.get_target_year_start_end(target_yyyy)

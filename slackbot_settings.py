@@ -10,9 +10,11 @@ DEFAULT_REPLY = "意味がわかりませんよ！helpでコマンドを確認�
 # プラグインスクリプトを置いてあるサブディレクトリ名のリスト
 PLUGINS = ['plugins']
 
+# 年間上限金額
+MAX_AMOUNT = os.getenv("MAX_AMOUNT", 10000)
+
 # 公式チャンネルID
 DEFAULT_CHANNEL_ID = os.getenv('DEFAULT_CHANNEL_ID', 'CC6DENSDV')
 
 # 感想登録リマインダの通知時間
-# IMPRESSION_REMINDER_TIME = "11:00"
-IMPRESSION_REMINDER_TIME = "17:10"
+IMPRESSION_REMINDER_TIME = "11:00"
