@@ -5,7 +5,8 @@ import os
 
 
 class S3(object):
-    S3_BUCKET_PDF = "bookbot-pdf"
+    AWS_ACCOUNT_ID = os.getenv("AWS_ACCOUNT_ID", "798228459898")
+    S3_BUCKET_PDF = f"bookbot-pdf-{AWS_ACCOUNT_ID}"
 
     def __init__(self):
         self.logger = get_logger(__name__)
