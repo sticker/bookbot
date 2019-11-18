@@ -1,5 +1,7 @@
 import re
 import os
+from slacker import Slacker
+from slackbot import settings
 from slackbot.dispatcher import Message
 from lib import get_logger
 
@@ -7,6 +9,7 @@ from lib import get_logger
 class Slack:
     def __init__(self):
         self.logger = get_logger(__name__)
+        self.slacker = Slacker(settings.API_TOKEN)
 
     def get_slack_id_from_workflow(self, text: str) -> str:
         slack_id = re.findall('<@(.*)>さん', text)
@@ -34,21 +37,33 @@ class Slack:
 
         return res.body['permalink']
 
-    def upload_file(self, message: Message, channel_name: str, fpath: str, comment: str, thread_ts: str ) -> bool:
+    def upload_file(self, message: Message, channel_name: str, fpath: str, comment: str, thread_ts: str) -> bool:
         res = message._client.webapi.files.upload(fpath,
-                                            channels=channel_name,
-                                            filename=os.path.basename(fpath),
-                                            initial_comment=comment,
-                                            thread_ts=thread_ts)
+                                                  channels=channel_name,
+                                                  filename=os.path.basename(fpath),
+                                                  initial_comment=comment,
+                                                  thread_ts=thread_ts)
         return res
 
     def send_message_with_link_names(self, message, channel, text, attachments=None, as_user=True, thread_ts=None):
         res = message._client.webapi.chat.post_message(channel, text,
-                                                 username=message._client.login_data['self']['name'],
-                                                 icon_url=message._client.bot_icon,
-                                                 icon_emoji=message._client.bot_emoji,
-                                                 attachments=attachments,
-                                                 as_user=as_user,
-                                                 thread_ts=thread_ts,
-                                                 link_names=True)
+                                                       username=message._client.login_data['self']['name'],
+                                                       icon_url=message._client.bot_icon,
+                                                       icon_emoji=message._client.bot_emoji,
+                                                       attachments=attachments,
+                                                       as_user=as_user,
+                                                       thread_ts=thread_ts,
+                                                       link_names=True)
         return res
+
+    def send_message_by_slacker(self, channel, text, attachments=None, as_user=True, thread_ts=None, link_names=True):
+        res = self.slacker.chat.post_message(channel, text,
+                                             attachments=attachments,
+                                             as_user=as_user,
+                                             thread_ts=thread_ts,
+                                             link_names=link_names)
+        return res
+
+    def get_channel_name_by_slacker(self, channel_id):
+        res = self.slacker.channels.info(channel=channel_id)
+        return res.body['channel']['name']

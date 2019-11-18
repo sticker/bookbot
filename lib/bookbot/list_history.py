@@ -15,7 +15,7 @@ class ListHistory:
         self.logger.info(items)
 
         if len(items) == 0:
-            message.send('見つかりませんでした！')
+            message.reply('まだ登録データが無いようです。')
             return
 
         # 申請日でソート
@@ -31,7 +31,7 @@ class ListHistory:
         items = self.dynamodb.scan_contains_search_words(search_words)
 
         if len(items) == 0:
-            message.send('見つかりませんでした！')
+            message.reply('見つかりませんでした...。検索文字を変えてみてください。大文字小文字も区別しますよ。')
             return
 
         # 申請日でソート

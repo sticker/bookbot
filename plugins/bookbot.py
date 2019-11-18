@@ -1,3 +1,4 @@
+from slackbot import settings
 from slackbot.bot import listen_to
 from slackbot.bot import respond_to
 from slackbot.dispatcher import Message
@@ -9,12 +10,7 @@ from lib.bookbot.describe import Describe
 from lib.bookbot.total import Total
 from lib.bookbot.delete import Delete
 from lib.util.slack import Slack
-
-import os
 import logging
-logging.basicConfig(level=logging.DEBUG)
-
-default_channel_id = os.getenv('DEFAULT_CHANNEL_ID', 'CC6DENSDV')
 
 
 @respond_to('help')
@@ -69,9 +65,9 @@ def describe_handler(message: Message, command, entry_no):
 def delete_handler(message: Message, command, entry_no):
     logging.info(message.body)
 
-    if message.body['channel'] != default_channel_id:
+    if message.body['channel'] != settings.DEFAULT_CHANNEL_ID:
         slack = Slack()
-        text = f"公式チャンネル #{slack.get_channel_name(message, channel_id=default_channel_id)} で実行してください！"
+        text = f"公式チャンネル #{slack.get_channel_name(message, channel_id=settings.DEFAULT_CHANNEL_ID)} で実行してください！"
         slack.send_message_with_link_names(message, message.body['channel'], text)
         return
 

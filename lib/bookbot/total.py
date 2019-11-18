@@ -22,13 +22,13 @@ class Total:
         remain_amount = self.amount.get_remain_amount(slack_name)
 
         text_list = list()
-        text_list.append(f"<@{slack_id}> 今年度の立替金合計は *{total_price_in_this_year}* 円 です。")
+        text_list.append(f"今年度の立替金合計は *{total_price_in_this_year}* 円 です。")
         if remain_amount == 0:
             text_list.append(f"上限金額は *{self.amount.max_amount}* 円です。今年度はこれ以上立替できません。")
         else:
             text_list.append(f"残り *{remain_amount}* 円 までならOKです。")
 
-        message.send("\n".join(text_list))
+        message.reply("\n".join(text_list))
 
     def all_total_price_in_year(self, message, target_yyyy):
         text_list = list()
@@ -42,4 +42,4 @@ class Total:
             all_total_price_in_year = self.amount.get_all_total_price_in_year(target_yyyy)
             text_list.append(f"今年度のすべての立替金合計は *{all_total_price_in_year}* 円 です。")
 
-        message.send("\n".join(text_list))
+        message.reply("\n".join(text_list))

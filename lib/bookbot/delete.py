@@ -17,7 +17,7 @@ class Delete:
         # 削除対象レコードを取得
         items = self.dynamodb.query_specified_key_value(self.dynamodb.default_table, 'entry_no', entry_no)
         if len(items) == 0:
-            message.send("対象の登録データが見つかりません")
+            message.reply(f"登録番号 *[{entry_no}]* のデータが見つかりません。")
             return
 
         # プライマリキー指定なので必ず1件取得
@@ -25,7 +25,12 @@ class Delete:
 
         # 削除できるのは自分の登録情報だけ
         if item['slack_id'] != self.slack.get_slack_id(message):
-            message.send("削除できるのは自分の登録情報だけです！")
+            message.reply("削除できるのは自分の登録情報だけです！")
+            return
+
+        # 感想登録されていたら削除不可とする
+        if item['impression_flag'] == '1':
+            message.reply("感想登録後は削除できません！")
             return
 
         # レコード削除
@@ -34,7 +39,7 @@ class Delete:
         self.dynamodb.remove(self.dynamodb.default_table, key)
 
         text_list = list()
-        text_list.append("以下の登録データを削除しました！")
+        text_list.append("以下の登録情報を削除しました！")
         text_list.append(self.converter.get_list_str(item))
 
-        message.send("\n".join(text_list))
+        message.reply("\n".join(text_list))

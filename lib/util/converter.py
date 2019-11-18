@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Converter:
@@ -50,3 +50,7 @@ class Converter:
             has_impression = ":memo:"
 
         return f"*[{entry_no}]* <{book_url}|{book_name}>{book_type} at {entry_date} by {real_name}{has_impression}"
+
+    def get_yyyymmdd_specified_days_ago(self, days_ago: int, today=datetime.today()):
+        specified_days_ago = today - timedelta(days_ago)
+        return specified_days_ago.strftime('%Y%m%d')

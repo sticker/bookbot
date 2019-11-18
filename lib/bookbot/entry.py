@@ -38,22 +38,27 @@ class Entry:
             text = block['text']['text']
             if '*題名*' in text:
                 book_name = re.sub('\*題名\*|\n', '', text)
+                self.logger.debug(f"book_name={book_name}")
             elif '*形式*' in text:
                 book_type = re.sub('\*形式\*|\n', '', text)
+                self.logger.debug(f"book_type={book_type}")
             elif '*立替金額（税込）*' in text:
                 book_price = re.sub('\\D', '', self.converter.to_hankaku(text))
+                self.logger.debug(f"book_price={book_price}")
             elif '*詳細リンク（Amazonなど）*' in text:
                 book_url = re.sub('\*詳細リンク（Amazonなど）\*|<|>|\n', '', text)
+                self.logger.debug(f"book_url={book_url}")
             elif '*購入目的*' in text:
                 purpose = re.sub('\*購入目的\*|<|>|\n', '', text)
+                self.logger.debug(f"purpose={purpose}")
 
         # 投稿タイムスタンプ（スレッド投稿のため）
         ts = message.body['ts']
 
         # パラメータチェック
-        # if not self.validation.validate_entry(book_name=book_name, book_price=book_price, book_url=book_url, message=message):
-        #     self.logger.debug("パラメータチェックNG")
-        #     return
+        if not self.validation.validate_entry(book_name=book_name, book_price=book_price, book_url=book_url, message=message):
+            self.logger.debug("パラメータチェックNG")
+            return
 
         # 申請日
         entry_time = now.strftime("%Y%m%d%H%M%S")
@@ -91,6 +96,7 @@ class Entry:
 
         # 感想（空で登録）
         impression = ''
+        impression_flag = '0'  # 0:登録無し
 
         item = {
             'entry_no': entry_no,
@@ -106,7 +112,8 @@ class Entry:
             'slack_name': slack_name,
             'real_name': real_name,
             'permalink': permalink,
-            'impression': impression
+            'impression': impression,
+            'impression_flag': impression_flag
         }
         self.logger.info(f"item={item}")
 
@@ -148,5 +155,5 @@ class Entry:
 
         # S3にもアップロード
         this_year = self.converter.get_this_year_from_today()[0][0:4]  # 今年度のYYYY
-        self.s3.upload_to_pdf(save_pdf_path, process_ym=this_year)
+        self.s3.upload_to_pdf(save_pdf_path, process_yyyy=this_year)
 
