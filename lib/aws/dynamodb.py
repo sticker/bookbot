@@ -213,9 +213,9 @@ class Dynamodb(object):
                      Attr('slack_name').contains(search_word) | \
                      Attr('real_name').contains(search_word)
             else:
-                fe = fe & Attr('book_name').contains(search_word) | \
-                     Attr('slack_name').contains(search_word) | \
-                     Attr('real_name').contains(search_word)
+                fe = fe & (Attr('book_name').contains(search_word) |
+                     Attr('slack_name').contains(search_word) |
+                     Attr('real_name').contains(search_word))
         method_str = f"scan(FilterExpression=param"
         self.logger.debug(method_str)
 
