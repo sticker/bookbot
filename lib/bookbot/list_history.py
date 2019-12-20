@@ -11,7 +11,8 @@ class ListHistory:
         self.default_record_num = 20
 
     def default(self, message):
-        items = self.dynamodb.find(self.dynamodb.default_table, self.default_record_num)
+        # 全件取得
+        items = self.dynamodb.scan()
         self.logger.info(items)
 
         if len(items) == 0:
@@ -21,8 +22,9 @@ class ListHistory:
         # 申請日でソート
         items.sort(key=lambda x: x['entry_time'], reverse=True)
 
+        # 直近の self.default_record_num 件だけ表示する
         text_list = list()
-        for item in items:
+        for item in items[:self.default_record_num]:
             text_list.append(self.converter.get_list_str(item))
 
         message.send("\n".join(text_list))
